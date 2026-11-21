@@ -20,6 +20,10 @@
         "description": "Reserva e cancela as próprias aulas"
       },
       {
+        "name": "whatsapp_agent",
+        "description": "Conta de serviço do agente de WhatsApp: age como o aluno vinculado ao telefone; sem acesso ao domínio"
+      },
+      {
         "name": "default-roles-estudios",
         "composite": true,
         "composites": {
@@ -80,6 +84,158 @@
             "access.token.claim": "true",
             "id.token.claim": "true",
             "userinfo.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        },
+        {
+          "name": "audience-studio-api",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.client.audience": "studio-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "lesson-recommender-estudio-lotus",
+      "name": "lesson-recommender (lotus, DEV)",
+      "enabled": true,
+      "bearerOnly": false,
+      "publicClient": false,
+      "secret": "dev-only-lr-lotus-change-me",
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "protocolMappers": [
+        {
+          "name": "tenant",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-hardcoded-claim-mapper",
+          "config": {
+            "claim.name": "tenant",
+            "claim.value": "estudio-lotus",
+            "jsonType.label": "String",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "userinfo.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        },
+        {
+          "name": "audience-studio-api",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.client.audience": "studio-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "whatsapp-agent-estudio-lotus",
+      "name": "whatsapp-booking-agent (lotus, DEV)",
+      "enabled": true,
+      "bearerOnly": false,
+      "publicClient": false,
+      "secret": "dev-only-wa-lotus-change-me",
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "protocolMappers": [
+        {
+          "name": "tenant",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-hardcoded-claim-mapper",
+          "config": {
+            "claim.name": "tenant",
+            "claim.value": "estudio-lotus",
+            "jsonType.label": "String",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "userinfo.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        },
+        {
+          "name": "audience-studio-api",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.client.audience": "studio-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "lesson-recommender-pilates-equilibrio",
+      "name": "lesson-recommender (equilibrio, DEV)",
+      "enabled": true,
+      "bearerOnly": false,
+      "publicClient": false,
+      "secret": "dev-only-lr-equilibrio-change-me",
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "protocolMappers": [
+        {
+          "name": "tenant",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-hardcoded-claim-mapper",
+          "config": {
+            "claim.name": "tenant",
+            "claim.value": "pilates-equilibrio",
+            "jsonType.label": "String",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "userinfo.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        },
+        {
+          "name": "audience-studio-api",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.client.audience": "studio-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "whatsapp-agent-pilates-equilibrio",
+      "name": "whatsapp-booking-agent (equilibrio, DEV)",
+      "enabled": true,
+      "bearerOnly": false,
+      "publicClient": false,
+      "secret": "dev-only-wa-equilibrio-change-me",
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "protocolMappers": [
+        {
+          "name": "tenant",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-hardcoded-claim-mapper",
+          "config": {
+            "claim.name": "tenant",
+            "claim.value": "pilates-equilibrio",
+            "jsonType.label": "String",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "userinfo.token.claim": "false",
             "introspection.token.claim": "true"
           }
         },
@@ -302,6 +458,70 @@
       ],
       "realmRoles": [
         "student",
+        "default-roles-estudios"
+      ],
+      "requiredActions": []
+    },
+    {
+      "id": "6f0c3b8e-1a2d-4c5e-9f00-000000000311",
+      "username": "service-account-lesson-recommender-estudio-lotus",
+      "serviceAccountClientId": "lesson-recommender-estudio-lotus",
+      "enabled": true,
+      "attributes": {
+        "tenant": [
+          "estudio-lotus"
+        ]
+      },
+      "realmRoles": [
+        "studio_admin",
+        "default-roles-estudios"
+      ],
+      "requiredActions": []
+    },
+    {
+      "id": "6f0c3b8e-1a2d-4c5e-9f00-000000000312",
+      "username": "service-account-whatsapp-agent-estudio-lotus",
+      "serviceAccountClientId": "whatsapp-agent-estudio-lotus",
+      "enabled": true,
+      "attributes": {
+        "tenant": [
+          "estudio-lotus"
+        ]
+      },
+      "realmRoles": [
+        "whatsapp_agent",
+        "default-roles-estudios"
+      ],
+      "requiredActions": []
+    },
+    {
+      "id": "6f0c3b8e-1a2d-4c5e-9f00-000000000321",
+      "username": "service-account-lesson-recommender-pilates-equilibrio",
+      "serviceAccountClientId": "lesson-recommender-pilates-equilibrio",
+      "enabled": true,
+      "attributes": {
+        "tenant": [
+          "pilates-equilibrio"
+        ]
+      },
+      "realmRoles": [
+        "studio_admin",
+        "default-roles-estudios"
+      ],
+      "requiredActions": []
+    },
+    {
+      "id": "6f0c3b8e-1a2d-4c5e-9f00-000000000322",
+      "username": "service-account-whatsapp-agent-pilates-equilibrio",
+      "serviceAccountClientId": "whatsapp-agent-pilates-equilibrio",
+      "enabled": true,
+      "attributes": {
+        "tenant": [
+          "pilates-equilibrio"
+        ]
+      },
+      "realmRoles": [
+        "whatsapp_agent",
         "default-roles-estudios"
       ],
       "requiredActions": []
