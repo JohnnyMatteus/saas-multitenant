@@ -8,10 +8,17 @@ use App\Modules\Identity\Jwt\JwksKeySetProvider;
 use App\Modules\Identity\Jwt\JwtVerifier;
 use App\Modules\Identity\Jwt\KeySetProvider;
 use App\Modules\Identity\Jwt\StaticKeySetProvider;
+use App\Modules\Identity\Models\Role;
+use App\Modules\Identity\Models\User;
+use App\Modules\Identity\WhatsApp\ContactHasher;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Http\Client\Factory;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use InvalidArgumentException;
 
@@ -19,6 +26,11 @@ final class IdentityServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        $this->app->singleton(ContactHasher::class, fn (Application $app): ContactHasher => new ContactHasher(
+            // A APP_KEY já é o segredo da instalação: serve de tempero sem criar configuração nova.
+            (string) $app->make(Config::class)->get('app.key'),
+        ));
+
         $this->app->singleton(KeySetProvider::class, function (Application $app): KeySetProvider {
             $config = $app->make(Config::class);
 
@@ -56,6 +68,19 @@ final class IdentityServiceProvider extends ServiceProvider
     {
         // O guard só carrega o usuário que o middleware AuthenticateJwt definiu.
         Auth::viaRequest('jwt', fn (): null => null);
+
+        Gate::define('manage-whatsapp-link', fn (User $user): bool => $user->hasRole(Role::Student));
+
+        // Os 6 dígitos são a única barreira do opt-in. O limiter roda antes de o tenant existir
+        // no contexto, então a chave usa o client (o token é da conta de serviço do estúdio).
+        RateLimiter::for('whatsapp-link', function (Request $request): array {
+            $client = hash('sha256', (string) $request->bearerToken());
+
+            return [
+                Limit::perMinute(10)->by($client.'|'.$request->string('contact')),
+                Limit::perMinute(60)->by($client),
+            ];
+        });
     }
 
     private function readLocalPublicKey(string $path): string
