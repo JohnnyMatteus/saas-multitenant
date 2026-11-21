@@ -1,6 +1,8 @@
 <?php
 
+use App\Modules\Identity\Http\Controllers\InstructorController;
 use App\Modules\Identity\Http\Controllers\MeController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/me', MeController::class)->name('me');
+Route::get('/instructors', [InstructorController::class, 'index'])->name('instructors.index');
