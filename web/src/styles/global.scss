@@ -1,0 +1,79 @@
+// Tipografia e utilitários da identidade Respiro. Cores sempre via tokens do tema.
+:root {
+  --respiro-display: 'Fraunces Variable', 'Fraunces', Georgia, serif;
+  --respiro-body: 'Figtree Variable', 'Figtree', system-ui, sans-serif;
+  --respiro-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --respiro-fast: 150ms;
+}
+
+html,
+body {
+  font-family: var(--respiro-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+.v-application {
+  font-family: var(--respiro-body);
+}
+
+.display-1,
+.display-2,
+.section-title,
+.font-display {
+  font-family: var(--respiro-display);
+  font-variation-settings: 'SOFT' 100;
+  letter-spacing: -0.01em;
+}
+.display-1 {
+  font-size: 32px;
+  line-height: 38px;
+  font-weight: 600;
+}
+.display-2 {
+  font-size: 24px;
+  line-height: 30px;
+  font-weight: 600;
+}
+.section-title {
+  font-size: 20px;
+  line-height: 26px;
+  font-weight: 500;
+}
+.label {
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+}
+.tnum,
+.time {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+}
+.time {
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 600;
+}
+.text-medium {
+  color: rgba(var(--v-theme-on-surface), var(--v-medium-emphasis-opacity));
+}
+
+// Anel de foco próprio: 2 px em argila, sempre visível no teclado.
+:focus-visible {
+  outline: 2px solid rgb(var(--v-theme-primary));
+  outline-offset: 2px;
+  border-radius: 12px;
+}
+.v-btn:focus-visible {
+  border-radius: 999px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

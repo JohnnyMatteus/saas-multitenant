@@ -191,6 +191,22 @@ services:
       timeout: 3s
       retries: 5
 
+  web:
+    build: ./web
+    image: saas-multitenant-web:dev
+    profiles: [core]
+    ports:
+      - "127.0.0.1:${WEB_PORT:-5173}:8080"
+    depends_on:
+      app:
+        condition: service_healthy
+    networks: [studio-net]
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
   prometheus:
     image: prom/prometheus:v3.5.0
     profiles: [observability]
