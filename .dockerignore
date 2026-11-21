@@ -4,7 +4,7 @@
 .env.*
 !.env.example
 vendor
-node_modules
+**/node_modules
 storage/logs/*
 storage/framework/cache/*
 storage/framework/views/*
@@ -14,3 +14,4 @@ bootstrap/cache/*.php
 tests
 docs
 /e2e
+/web
