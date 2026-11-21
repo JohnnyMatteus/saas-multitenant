@@ -64,6 +64,7 @@ final class ProblemDetailsRenderer
             404 => 'Não encontrado',
             409 => 'Conflito',
             422 => 'Não processável',
+            503 => 'Serviço indisponível',
             default => 'Erro na requisição',
         };
     }

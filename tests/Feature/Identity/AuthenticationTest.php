@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Identity;
 
+use App\Modules\Identity\Jwt\KeySetProvider;
 use App\Modules\Identity\Models\Role;
 use App\Modules\Identity\Models\User;
 use App\Modules\Tenancy\Models\Tenant;
 use App\Modules\Tenancy\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\Support\JwtFactory;
 use Tests\TestCase;
@@ -113,5 +115,19 @@ final class AuthenticationTest extends TestCase
 
         $this->assertNull($this->app->make(TenantContext::class)->currentOrNull());
         $this->withoutToken()->getJson('/api/v1/me')->assertUnauthorized();
+    }
+
+    #[Test]
+    public function an_unreachable_identity_provider_is_a_503_not_a_401(): void
+    {
+        config(['jwt.mode' => 'jwks', 'jwt.jwks.uri' => 'https://idp.example.com/certs']);
+        $this->app->forgetInstance(KeySetProvider::class);
+        Http::fake(['idp.example.com/*' => Http::response('indisponível', 503)]);
+
+        $this->withToken(JwtFactory::token(['sub' => 'x', 'tenant' => 'estudio-lotus']))
+            ->getJson('/api/v1/me')
+            ->assertStatus(503)
+            ->assertJsonPath('type', 'identity_provider_unavailable')
+            ->assertJsonPath('title', 'Serviço indisponível');
     }
 }
