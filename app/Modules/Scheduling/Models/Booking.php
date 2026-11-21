@@ -26,6 +26,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property CarbonImmutable $queued_at
  * @property CarbonImmutable|null $confirmed_at
  * @property CarbonImmutable|null $canceled_at
+ * @property CarbonImmutable|null $reminder_sent_at
  * @property-read ClassSession $session
  * @property-read User $member
  */
@@ -36,7 +37,7 @@ class Booking extends Model
 
     protected $dateFormat = 'Y-m-d H:i:s.u';
 
-    protected $fillable = ['tenant_id', 'session_id', 'member_id', 'status', 'queued_at', 'confirmed_at', 'canceled_at'];
+    protected $fillable = ['tenant_id', 'session_id', 'member_id', 'status', 'queued_at', 'confirmed_at', 'canceled_at', 'reminder_sent_at'];
 
     protected function casts(): array
     {
@@ -45,6 +46,7 @@ class Booking extends Model
             'queued_at' => 'immutable_datetime',
             'confirmed_at' => 'immutable_datetime',
             'canceled_at' => 'immutable_datetime',
+            'reminder_sent_at' => 'immutable_datetime',
         ];
     }
 

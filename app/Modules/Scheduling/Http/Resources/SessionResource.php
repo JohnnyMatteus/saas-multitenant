@@ -42,6 +42,8 @@ final class SessionResource extends JsonResource
             'confirmed_count' => $session->confirmed_count,
             'available_spots' => max(0, $session->capacity - $session->confirmed_count),
             'waitlist_count' => $session->waitlist_count,
+            'canceled_at' => $session->canceled_at?->toIso8601ZuluString(),
+            'cancel_reason' => $session->cancel_reason,
         ];
     }
 }

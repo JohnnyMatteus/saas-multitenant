@@ -4,7 +4,14 @@ declare(strict_types=1);
 
 namespace App\Modules\Scheduling;
 
+use App\Modules\Scheduling\Console\DispatchSchedulingMaintenance;
+use App\Modules\Scheduling\Events\BookingConfirmed;
+use App\Modules\Scheduling\Events\BookingReminderDue;
+use App\Modules\Scheduling\Events\SessionCanceledByStudio;
 use App\Modules\Scheduling\Events\WaitlistPromoted;
+use App\Modules\Scheduling\Listeners\SendBookingConfirmationEmail;
+use App\Modules\Scheduling\Listeners\SendBookingReminderEmail;
+use App\Modules\Scheduling\Listeners\SendSessionCanceledEmail;
 use App\Modules\Scheduling\Listeners\SendWaitlistPromotionEmail;
 use App\Modules\Scheduling\Models\Booking;
 use App\Modules\Scheduling\Models\ClassSeries;
@@ -25,5 +32,10 @@ final class SchedulingServiceProvider extends ServiceProvider
         Gate::policy(Booking::class, BookingPolicy::class);
 
         Event::listen(WaitlistPromoted::class, SendWaitlistPromotionEmail::class);
+        Event::listen(BookingConfirmed::class, SendBookingConfirmationEmail::class);
+        Event::listen(BookingReminderDue::class, SendBookingReminderEmail::class);
+        Event::listen(SessionCanceledByStudio::class, SendSessionCanceledEmail::class);
+
+        $this->commands([DispatchSchedulingMaintenance::class]);
     }
 }
