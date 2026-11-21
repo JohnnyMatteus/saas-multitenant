@@ -4,7 +4,7 @@ CORE    := $(COMPOSE) --profile core
 ALL     := $(COMPOSE) --profile core --profile observability --profile tools
 
 .DEFAULT_GOAL := help
-.PHONY: help up up-all up-portfolio down logs ps seed test test-unit test-integration lint stan check clean network token
+.PHONY: help up up-all up-portfolio down logs ps seed test test-unit test-integration lint stan check clean network token evidencia
 
 help: ## Lista os alvos
 	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-18s %s\n", $$1, $$2}'
@@ -57,6 +57,11 @@ token: ## Token de DEV de um usuário do realm de exemplo (KC_USER=...)
 		-d grant_type=password -d client_id=studio-web \
 		-d username=$${KC_USER:-aluna.lotus@example.com} -d password=dev-only-change-me \
 		| php -r '$$t = json_decode(stream_get_contents(STDIN)); echo $$t->access_token ?? "erro: o Keycloak está no ar?", PHP_EOL;'
+
+evidencia: ## Sobe a stack, zera os dados e grava o vídeo do fluxo principal (Playwright)
+	$(COMPOSE) --profile core --profile observability up -d --build --wait
+	$(CORE) run --rm migrate php artisan migrate:fresh --seed --force
+	cd e2e/evidencia && npm ci && npx playwright install chromium && npx playwright test
 
 clean: ## Remove contêineres, volumes e caches locais
 	$(ALL) down -v --remove-orphans

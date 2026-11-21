@@ -88,7 +88,7 @@ make ps
 | Prometheus (`make up-all`) | http://localhost:9090 |
 | Adminer (`make up-all`) | http://localhost:8081 |
 
-Usuários de exemplo do realm (senha `dev-only-change-me`): `admin.lotus@example.com`, `instrutor.lotus@example.com`, `aluna.lotus@example.com`, e os equivalentes `*.equilibrio@example.com`.
+Usuários de exemplo do realm (senha `dev-only-change-me`): `admin.lotus@example.com`, `instrutor.lotus@example.com`, `aluna.lotus@example.com`, `aluna.beatriz.lotus@example.com`, `aluno.caio.lotus@example.com`, e os equivalentes `*.equilibrio@example.com`.
 
 ```bash
 # token da aluna e a grade da semana
@@ -125,6 +125,16 @@ O que a suíte cobre (mais de 140 testes):
 - **JWT**: expirado, `alg: none`, confusão HS256, outra chave, `kid` desconhecido e rotação, `iss`/`aud` errados, JWKS fora do ar (tudo sem rede: `Http::fake`).
 
 Os testes nunca chamam serviços externos: tokens são assinados com um par RSA gerado em memória; S3, fila e e-mail usam fakes.
+
+## Evidência
+
+Vídeo gravado com Playwright contra a stack real (Keycloak, MySQL, Redis, worker, Mailpit, Prometheus): login no Keycloak, aula com 2 vagas, lotação, lista de espera, promoção automática com e-mail, 404 entre estúdios, 401 sem token e métricas.
+
+```bash
+make evidencia   # sobe a stack, zera os dados de dev e roda e2e/evidencia
+```
+
+O vídeo fica em `e2e/evidencia/test-results/*/video.webm`.
 
 ## Decisões principais
 

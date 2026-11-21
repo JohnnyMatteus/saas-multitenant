@@ -13,3 +13,4 @@ bootstrap/cache/*.php
 .phpstan.cache
 tests
 docs
+/e2e
