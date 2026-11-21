@@ -13,3 +13,7 @@ Route::prefix('v1')
         require app_path('Modules/Scheduling/Http/routes.php');
         require app_path('Modules/Branding/Http/routes.php');
     });
+
+Route::prefix('v1')->group(function (): void {
+    require app_path('Modules/Identity/Http/integration-routes.php');
+});

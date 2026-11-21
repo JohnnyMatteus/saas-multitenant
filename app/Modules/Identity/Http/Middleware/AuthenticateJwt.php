@@ -7,9 +7,13 @@ namespace App\Modules\Identity\Http\Middleware;
 use App\Modules\Identity\Application\ProvisionUser;
 use App\Modules\Identity\Exceptions\RoleNotRecognized;
 use App\Modules\Identity\Exceptions\TenantNotRecognized;
+use App\Modules\Identity\Exceptions\WhatsAppContactNotLinked;
 use App\Modules\Identity\Jwt\InvalidToken;
 use App\Modules\Identity\Jwt\JwtVerifier;
 use App\Modules\Identity\Models\Role;
+use App\Modules\Identity\Models\User;
+use App\Modules\Identity\WhatsApp\WhatsAppAgent;
+use App\Modules\Identity\WhatsApp\WhatsAppLinkService;
 use App\Modules\Tenancy\Models\Tenant;
 use App\Modules\Tenancy\TenantContext;
 use Closure;
@@ -35,6 +39,7 @@ final readonly class AuthenticateJwt implements AuthenticatesRequests
         private TenantContext $tenantContext,
         private ProvisionUser $provisionUser,
         private AuthManager $auth,
+        private WhatsAppLinkService $whatsAppLinks,
         private LoggerInterface $logger,
     ) {}
 
@@ -56,12 +61,19 @@ final readonly class AuthenticateJwt implements AuthenticatesRequests
         $tenant = Tenant::query()->where('slug', $claims->tenant)->where('active', true)->first()
             ?? throw new TenantNotRecognized;
 
-        $role = Role::highestFrom($claims->roles) ?? throw new RoleNotRecognized;
+        $role = Role::highestFrom($claims->roles);
+        $contact = $request->header(WhatsAppAgent::CONTACT_HEADER);
+        $delegating = $role === null && $contact !== null && in_array(WhatsAppAgent::ROLE, $claims->roles, true);
+        if ($role === null && ! $delegating) {
+            throw new RoleNotRecognized;
+        }
 
         $this->tenantContext->set($tenant);
 
         try {
-            $user = $this->provisionUser->handle($claims, $role);
+            $user = $role === null
+                ? $this->delegatedStudent((string) $contact)
+                : $this->provisionUser->handle($claims, $role);
             $this->auth->guard()->setUser($user);
             Context::add(['tenant_id' => $tenant->id, 'user_id' => $user->id]);
 
@@ -71,5 +83,18 @@ final readonly class AuthenticateJwt implements AuthenticatesRequests
             $this->auth->forgetGuards();
             $this->tenantContext->clear();
         }
+    }
+
+    /**
+     * A conta de serviço do agente age como o aluno vinculado ao telefone do remetente,
+     * com as mesmas policies e o mesmo isolamento do aluno.
+     */
+    private function delegatedStudent(string $contact): User
+    {
+        if (preg_match(WhatsAppAgent::CONTACT_PATTERN, $contact) !== 1) {
+            throw new WhatsAppContactNotLinked;
+        }
+
+        return $this->whatsAppLinks->studentForContact($contact) ?? throw new WhatsAppContactNotLinked;
     }
 }
