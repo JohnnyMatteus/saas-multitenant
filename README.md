@@ -155,6 +155,7 @@ Os testes nunca chamam serviços externos: tokens são assinados com um par RSA 
 5. Teste que exige `BelongsToTenant` em todo modelo com `tenant_id`.
 6. Export/import por tenant; usuário em vários estúdios com seleção no login.
 7. Pacotes de aulas e pagamentos (integração com o processador de pagamentos do portfólio).
+8. Smoke test da stack completa (`make up`) no CI. Nesta rodada foram validados localmente o `docker compose config`, a importação do realm e um login real no Keycloak validado pela API; o build da imagem e a subida de todos os serviços ficam a cargo do job `build` do CI.
 
 ## Licença
 
