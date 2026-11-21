@@ -197,6 +197,43 @@ final class BookingTest extends TestCase
     }
 
     #[Test]
+    public function my_bookings_carry_the_class_and_the_waitlist_position(): void
+    {
+        $session = $this->classSession(capacity: 1);
+        $this->book($this->createUser($this->lotus, Role::Student), $session);
+        $this->book($this->createUser($this->lotus, Role::Student), $session);
+
+        $this->book($this->alice, $session)
+            ->assertJsonPath('data.status', 'waitlisted')
+            ->assertJsonPath('data.waitlist_position', 2);
+
+        $this->actingAsJwt($this->alice)->getJson('/api/v1/me/bookings')
+            ->assertOk()
+            ->assertJsonPath('data.0.waitlist_position', 2)
+            ->assertJsonPath('data.0.session.id', $session->id)
+            ->assertJsonPath('data.0.session.confirmed_count', 1)
+            ->assertJsonPath('data.0.session.waitlist_count', 2)
+            ->assertJsonPath('data.0.session.starts_at_local', '2026-03-03T07:00:00-03:00');
+    }
+
+    #[Test]
+    public function a_confirmed_booking_has_no_waitlist_position(): void
+    {
+        $this->book($this->alice, $this->classSession())
+            ->assertJsonPath('data.status', 'confirmed')
+            ->assertJsonPath('data.waitlist_position', null);
+    }
+
+    #[Test]
+    public function a_session_exposes_the_cancellation_deadline_of_the_studio(): void
+    {
+        $session = $this->classSession('2026-03-03 10:00:00');
+
+        $this->actingAsJwt($this->alice)->getJson("/api/v1/sessions/{$session->id}")
+            ->assertJsonPath('data.cancellation_deadline', '2026-03-02T22:00:00Z');
+    }
+
+    #[Test]
     public function rejected_and_accepted_attempts_are_counted_in_metrics(): void
     {
         $session = $this->classSession(capacity: 1);
