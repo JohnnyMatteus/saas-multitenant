@@ -25,8 +25,8 @@ O produto é um SaaS: vários estúdios na mesma instalação, cada um vendo só
 - Pagamentos, planos e pacotes de aulas.
 - Front-end completo (o Vue fica para a fase seguinte; o realm já tem o cliente `studio-web`).
 - Banco dedicado por estúdio, multi-região.
-- Notificações além do e-mail de promoção da fila.
-- Edição de série com propagação para ocorrências futuras.
+- Preferências de notificação do aluno (e-mails de promoção, confirmação, lembrete e cancelamento já existem).
+- Mudar os dias da semana de uma série existente.
 
 ## 3. Arquitetura
 
@@ -248,11 +248,11 @@ Admin envia dias da semana, horário local, duração, capacidade e período. `W
 ## 10. Plano de evolução
 
 1. **Front-end Vue 3** com login OIDC + PKCE (cliente `studio-web`), grade semanal no fuso do estúdio e "minhas reservas".
-2. **Job de horizonte**: estender séries automaticamente; editar série com propagação para ocorrências futuras sem reservas.
-3. **Cancelamento de aula pelo estúdio** (notifica todos, libera a fila).
-4. **Notificações**: e-mail de confirmação de reserva e lembrete; preferências do aluno.
+2. ~~Job de horizonte e edição de série~~ (entregue: `scheduling:maintain`, `PATCH /sessions/{id}`).
+3. ~~Cancelamento de aula pelo estúdio~~ (entregue).
+4. ~~E-mails de confirmação e lembrete~~ (entregue); preferências do aluno ficam para depois.
 5. **OpenTelemetry SDK** exportando spans para o Jaeger do `platform-edge`.
-6. **Teste de arquitetura** exigindo `BelongsToTenant` em todo modelo com `tenant_id`.
+6. ~~Teste de arquitetura de `BelongsToTenant`~~ (entregue: `TenantModelsTest`).
 7. **Export/import por tenant** (restauração isolada, portabilidade).
 8. **Usuário em vários estúdios** com seleção de estúdio no login.
 9. **Planos e pacotes de aulas** (créditos), integrando com o processador de pagamentos do portfólio.
