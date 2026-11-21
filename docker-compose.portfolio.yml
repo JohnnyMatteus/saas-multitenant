@@ -1,0 +1,10 @@
+# Opcional: conecta a API à rede compartilhada do ecossistema do portfólio
+# (platform-edge na frente, ops-copilot observando). Crie antes com `make network`.
+services:
+  app:
+    networks: [studio-net, portfolio-net]
+
+networks:
+  portfolio-net:
+    name: portfolio-net
+    external: true
