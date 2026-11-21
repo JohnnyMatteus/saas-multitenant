@@ -1,0 +1,105 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  PHP_VERSION: "8.4"
+  PHP_EXTENSIONS: mbstring, intl, pdo_mysql, pcntl, posix, openssl
+
+jobs:
+  lint:
+    name: Lint e análise estática
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: ${{ env.PHP_EXTENSIONS }}
+          coverage: none
+
+      - name: Cache do Composer
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache/files
+          key: composer-${{ runner.os }}-${{ hashFiles('composer.lock') }}
+
+      - run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Pint
+        run: vendor/bin/pint --test
+
+      - name: PHPStan (Larastan, nível 8)
+        run: vendor/bin/phpstan analyse --memory-limit=1G --no-progress
+
+  test:
+    name: Testes (PHPUnit + MySQL)
+    runs-on: ubuntu-24.04
+    services:
+      mysql:
+        image: mysql:8.4.13
+        env:
+          MYSQL_DATABASE: studio_test
+          MYSQL_USER: studio
+          MYSQL_PASSWORD: dev-only-change-me
+          MYSQL_ROOT_PASSWORD: dev-only-change-me
+        ports:
+          - 3307:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -pdev-only-change-me --silent"
+          --health-interval=5s
+          --health-timeout=3s
+          --health-retries=30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: ${{ env.PHP_EXTENSIONS }}
+          coverage: none
+
+      - name: Cache do Composer
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache/files
+          key: composer-${{ runner.os }}-${{ hashFiles('composer.lock') }}
+
+      - run: composer install --no-interaction --prefer-dist --no-progress
+
+      # phpunit.xml já aponta para 127.0.0.1:3307/studio_test com as credenciais de DEV.
+      - name: PHPUnit
+        run: vendor/bin/phpunit
+
+  build:
+    name: Build da imagem e validação do compose
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Valida docker-compose (todos os perfis)
+        run: |
+          docker compose --profile core --profile observability --profile tools config --quiet
+          docker compose -f docker-compose.yml -f docker-compose.portfolio.yml --profile core config --quiet
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build da imagem da API
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          tags: saas-multitenant-app:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

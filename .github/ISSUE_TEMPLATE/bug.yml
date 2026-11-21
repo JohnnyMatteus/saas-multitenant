@@ -1,0 +1,45 @@
+name: Bug
+description: Algo não funciona como deveria
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: O que aconteceu
+      description: Comportamento observado, com IDs de requisição (X-Request-Id) se houver.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: O que era esperado
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Como reproduzir
+      placeholder: |
+        1. Logar como aluna do estúdio de exemplo
+        2. POST /api/v1/sessions/{id}/bookings
+        3. ...
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Área
+      options:
+        - Isolamento por tenant
+        - Agenda e reservas
+        - Autenticação / RBAC
+        - Observabilidade
+        - Infraestrutura local
+    validations:
+      required: true
+  - type: checkboxes
+    id: tenant
+    attributes:
+      label: Segurança
+      options:
+        - label: Envolve dados de um estúdio visíveis ou alteráveis por outro (prioridade máxima)

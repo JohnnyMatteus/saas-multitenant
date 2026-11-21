@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true"
+         failOnRisky="true"
+         failOnWarning="true"
+>
+    <testsuites>
+        <testsuite name="Unit">
+            <directory>tests/Unit</directory>
+        </testsuite>
+        <testsuite name="Feature">
+            <directory>tests/Feature</directory>
+        </testsuite>
+    </testsuites>
+    <source>
+        <include>
+            <directory>app</directory>
+        </include>
+    </source>
+    <php>
+        <env name="APP_ENV" value="testing"/>
+        <env name="APP_KEY" value="base64:ZGV2LW9ubHktY2hhbmdlLW1lLTAxMjM0NTY3ODlhYmM="/>
+        <env name="APP_MAINTENANCE_DRIVER" value="file"/>
+        <env name="CACHE_STORE" value="array"/>
+        <env name="LOG_CHANNEL" value="null"/>
+        <env name="QUEUE_CONNECTION" value="sync"/>
+        <env name="METRICS_STORAGE" value="in_memory"/>
+        <!-- Os testes assinam tokens com um par RSA gerado em memória (tests/Support/JwtFactory). -->
+        <env name="AUTH_JWT_MODE" value="local"/>
+        <env name="AUTH_JWT_ISSUER" value="https://idp.example.com/realms/estudios"/>
+        <env name="AUTH_JWT_AUDIENCE" value="studio-api"/>
+        <!-- MySQL do docker-compose (porta 3307) ou o serviço do CI; sobrescreva via variável de ambiente. -->
+        <env name="DB_CONNECTION" value="mysql"/>
+        <env name="DB_HOST" value="127.0.0.1"/>
+        <env name="DB_PORT" value="3307"/>
+        <env name="DB_DATABASE" value="studio_test"/>
+        <env name="DB_USERNAME" value="studio"/>
+        <env name="DB_PASSWORD" value="dev-only-change-me"/>
+    </php>
+</phpunit>

@@ -17,3 +17,8 @@
 .DS_Store
 .idea/
 .vscode/
+/database/*.sqlite
+/.phpactor.json
+_ide_helper.php
+/auth.json
+/.phpstan.cache
