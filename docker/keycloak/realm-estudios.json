@@ -177,6 +177,58 @@
       "requiredActions": []
     },
     {
+      "id": "6f0c3b8e-1a2d-4c5e-9f00-000000000104",
+      "username": "aluna.beatriz.lotus@example.com",
+      "email": "aluna.beatriz.lotus@example.com",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Beatriz",
+      "lastName": "Aluna Exemplo",
+      "attributes": {
+        "tenant": [
+          "estudio-lotus"
+        ]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "dev-only-change-me",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "student",
+        "default-roles-estudios"
+      ],
+      "requiredActions": []
+    },
+    {
+      "id": "6f0c3b8e-1a2d-4c5e-9f00-000000000105",
+      "username": "aluno.caio.lotus@example.com",
+      "email": "aluno.caio.lotus@example.com",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Caio",
+      "lastName": "Aluno Exemplo",
+      "attributes": {
+        "tenant": [
+          "estudio-lotus"
+        ]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "dev-only-change-me",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "student",
+        "default-roles-estudios"
+      ],
+      "requiredActions": []
+    },
+    {
       "id": "6f0c3b8e-1a2d-4c5e-9f00-000000000201",
       "username": "admin.equilibrio@example.com",
       "email": "admin.equilibrio@example.com",
