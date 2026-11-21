@@ -30,6 +30,7 @@ final class ClassSeriesResource extends JsonResource
             'capacity' => $series->capacity,
             'starts_on' => $series->starts_on->toDateString(),
             'ends_on' => $series->ends_on->toDateString(),
+            'rolling' => $series->rolling,
             'sessions_count' => $series->getAttribute('sessions_count'),
         ];
     }

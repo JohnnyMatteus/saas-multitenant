@@ -10,7 +10,7 @@ API multitenant de agendamento para estúdios de yoga e pilates (domínio fictí
 
 1. **Isolamento**: todo modelo com dados de estúdio usa `BelongsToTenant`; toda tabela nova tem `tenant_id` e FKs compostas `(x_id, tenant_id)`. Nunca leia o tenant de header/parâmetro: só da claim do JWT. `withoutTenancy()` só em código de sistema e testes, com justificativa.
 2. **Falha fechada**: sem tenant no contexto, consultas lançam exceção. Não "conserte" isso removendo o scope. Jobs usam `TenantContext::runAs()` com o tenant vindo no evento.
-3. **Concorrência**: reservas e cancelamentos travam na ordem aluno -> aula -> reservas (`lockForUpdate`). Não mude a ordem sem atualizar o ADR 0004 e o `BookingConcurrencyTest`.
+3. **Concorrência**: reservas e cancelamentos travam na ordem aluno -> aula -> reservas (`lockForUpdate`); edição de série trava série -> aulas -> reservas e nunca é chamada de dentro de uma reserva. Não mude a ordem sem atualizar o ADR 0004 e o `BookingConcurrencyTest`.
 4. **Tempo**: banco em UTC; regras no fuso do estúdio; nunca grave Carbon fora de UTC.
 5. **Fronteiras de módulo**: respeite a tabela de `tests/Unit/Architecture/ModuleBoundariesTest.php`. Nova dependência entre módulos pede ADR.
 6. **Domínio fictício**: nomes "Exemplo", e-mails `@example.com`, senhas só `dev-only-change-me`. Nenhum segredo real; `.env` nunca é versionado.

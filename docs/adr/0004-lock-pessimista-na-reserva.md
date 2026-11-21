@@ -35,3 +35,7 @@ A prova é um teste com `pcntl_fork`: 8 processos, cada um com conexão própria
 - **Lock otimista (coluna `version`)**: bom com pouca disputa; na abertura da grade a disputa é alta e geraria muitas repetições.
 - **Lock distribuído (Redis)**: mais uma peça para falhar, sem ganho num monólito com um banco.
 - **SERIALIZABLE**: correto, mas transforma leituras em locks compartilhados em toda a transação e aumenta deadlocks.
+
+## Adendo: edição de série e cancelamento de aula
+
+Edição de série trava série -> aulas (por id) -> reservas; o cancelamento de aula pelo estúdio trava aula -> reservas (por id). Reservas e cancelamentos de reserva nunca travam a série, então os caminhos não formam ciclo com aluno -> aula -> reservas. A promoção da fila (`WaitlistPromoter`) roda sempre com a aula já travada.

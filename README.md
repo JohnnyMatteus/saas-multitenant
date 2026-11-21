@@ -156,16 +156,20 @@ O vídeo fica em `e2e/evidencia/test-results/*/video.webm`.
 - **Ocorrências materializadas**: reservas por ocorrência e consultas simples, ao custo de um job de horizonte (ainda não feito).
 - **Métricas sem `tenant_id`**: evita cardinalidade alta; análise por estúdio vem dos logs.
 
+## Agenda: séries, cancelamento e e-mails
+
+- **Horizonte**: séries criadas com `rolling: true` são estendidas até 90 dias à frente pelo comando `scheduling:maintain --horizon` (diário, serviço `scheduler` do compose), que despacha um job por estúdio na fila Redis. Idempotente.
+- **Edição**: `PATCH /api/v1/sessions/{id}` com `scope` = `occurrence`, `following` ou `all` (admin). Título, instrutor e capacidade mudam sempre (capacidade nunca abaixo das vagas confirmadas; aumentar promove a fila); horário só muda em aulas sem reservas ativas. A resposta lista as aulas preservadas (`skipped`) e o motivo. "Esta e as próximas" divide a série em duas.
+- **Cancelamento pelo estúdio**: `POST /api/v1/sessions/{id}/cancel` cancela a aula e as reservas e avisa por e-mail quem tinha vaga e quem estava na fila.
+- **E-mails** pela fila Redis: confirmação de reserva, lembrete 24 h antes (`scheduling:maintain --reminders`, a cada 15 min), promoção da fila e cancelamento da aula.
+
 ## Próximos passos
 
 1. Front-end **Vue 3** (OIDC + PKCE com o cliente `studio-web` já no realm).
-2. Job que estende o horizonte das séries; edição de série propagando para ocorrências futuras.
-3. Cancelamento de aula pelo estúdio; e-mail de confirmação e lembrete.
-4. Exportação de spans com **OpenTelemetry SDK** (hoje há propagação de `traceparent` e `trace_id` nos logs).
-5. Teste que exige `BelongsToTenant` em todo modelo com `tenant_id`.
-6. Export/import por tenant; usuário em vários estúdios com seleção no login.
-7. Pacotes de aulas e pagamentos (integração com o processador de pagamentos do portfólio).
-8. Smoke test da stack completa (`make up`) no CI. Nesta rodada foram validados localmente o `docker compose config`, a importação do realm e um login real no Keycloak validado pela API; o build da imagem e a subida de todos os serviços ficam a cargo do job `build` do CI.
+2. Exportação de spans com **OpenTelemetry SDK** (hoje há propagação de `traceparent` e `trace_id` nos logs).
+3. Export/import por tenant; usuário em vários estúdios com seleção no login.
+4. Pacotes de aulas e pagamentos (integração com o processador de pagamentos do portfólio).
+5. Smoke test da stack completa (`make up`) no CI. Nesta rodada foram validados localmente o `docker compose config`, a importação do realm e um login real no Keycloak validado pela API; o build da imagem e a subida de todos os serviços ficam a cargo do job `build` do CI.
 
 ## Licença
 

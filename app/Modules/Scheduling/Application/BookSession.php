@@ -10,10 +10,13 @@ use App\Modules\Scheduling\Domain\BookingStatus;
 use App\Modules\Scheduling\Domain\Exceptions\AlreadyBooked;
 use App\Modules\Scheduling\Domain\Exceptions\OverlappingBooking;
 use App\Modules\Scheduling\Domain\Exceptions\SessionAlreadyStarted;
+use App\Modules\Scheduling\Domain\Exceptions\SessionCanceled;
 use App\Modules\Scheduling\Domain\SeatAllocation;
+use App\Modules\Scheduling\Events\BookingConfirmed;
 use App\Modules\Scheduling\Models\Booking;
 use App\Modules\Scheduling\Models\ClassSession;
 use App\Modules\Shared\Exceptions\DomainError;
+use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\Date;
@@ -37,6 +40,7 @@ final readonly class BookSession
         private ConnectionInterface $db,
         private Metrics $metrics,
         private LoggerInterface $logger,
+        private Dispatcher $events,
     ) {}
 
     public function handle(User $member, string $sessionId): Booking
@@ -75,6 +79,10 @@ final readonly class BookSession
         User::query()->whereKey($member->id)->lockForUpdate()->firstOrFail();
         $session = ClassSession::query()->lockForUpdate()->findOrFail($sessionId);
 
+        if ($session->isCanceled()) {
+            throw new SessionCanceled;
+        }
+
         if ($session->hasStartedAt($now)) {
             throw new SessionAlreadyStarted;
         }
@@ -109,6 +117,11 @@ final readonly class BookSession
             'canceled_at' => null,
         ]);
         $booking->save();
+
+        if ($status === BookingStatus::Confirmed) {
+            // Depois do commit (ShouldDispatchAfterCommit): sem e-mail de reserva desfeita.
+            $this->events->dispatch(new BookingConfirmed($session->tenant_id, $booking->id));
+        }
 
         return $booking;
     }
