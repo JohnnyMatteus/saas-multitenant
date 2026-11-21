@@ -1,0 +1,28 @@
+name: Funcionalidade
+description: Proposta de comportamento novo
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problema do estúdio
+      description: Quem sofre (admin, instrutor, aluno) e em que situação.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposta
+    validations:
+      required: true
+  - type: textarea
+    id: rules
+    attributes:
+      label: Regras e casos de borda
+      description: Fuso, capacidade, janela de cancelamento, concorrência, papéis.
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Critérios de aceite
+    validations:
+      required: true
