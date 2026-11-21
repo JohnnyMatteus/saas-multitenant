@@ -15,9 +15,6 @@ use Illuminate\Support\Facades\Gate;
 
 final class BookingController
 {
-    /**
-     * Reservas do próprio usuário, das próximas aulas para as mais distantes.
-     */
     public function mine(#[CurrentUser] User $user): AnonymousResourceCollection
     {
         $bookings = Booking::query()

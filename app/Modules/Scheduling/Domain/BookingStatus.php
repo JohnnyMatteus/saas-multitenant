@@ -19,8 +19,6 @@ enum BookingStatus: string
     }
 
     /**
-     * Valores ativos, para consultas.
-     *
      * @return list<string>
      */
     public static function activeValues(): array

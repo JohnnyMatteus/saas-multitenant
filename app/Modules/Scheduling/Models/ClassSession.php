@@ -60,8 +60,6 @@ class ClassSession extends Model
     }
 
     /**
-     * Carrega contadores de vagas sem N+1.
-     *
      * @param  Builder<ClassSession>  $query
      */
     public function scopeWithSeatCounts(Builder $query): void

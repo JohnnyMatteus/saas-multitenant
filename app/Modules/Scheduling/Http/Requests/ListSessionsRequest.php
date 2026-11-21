@@ -27,8 +27,6 @@ final class ListSessionsRequest extends FormRequest
     }
 
     /**
-     * Converte o intervalo local para instantes UTC.
-     *
      * @return array{0: CarbonImmutable, 1: CarbonImmutable}
      */
     public function utcRange(string $timezone): array

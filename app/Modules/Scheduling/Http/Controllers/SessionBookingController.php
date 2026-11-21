@@ -17,9 +17,6 @@ use Illuminate\Support\Facades\Gate;
 
 final class SessionBookingController
 {
-    /**
-     * Lista de presença e fila de uma aula.
-     */
     public function index(string $session): AnonymousResourceCollection
     {
         $classSession = ClassSession::query()->findOrFail($session);
