@@ -38,6 +38,7 @@ app/Modules/
   Identity/       Jwt/ (verifier, JWKS), AuthenticateJwt, ProvisionUser, User, Role
   Scheduling/     Domain/ (regras puras), Application/ (casos de uso), Models, Policies, Http, Listeners, Mail
   Branding/       LogoStorage (S3), controller do logo
+  Billing/        Pacotes, pedidos (payment_id próprio), consumidor dos eventos do processador (porta + dublê)
   Observability/  ObserveHttpRequests, Metrics, /metrics
 database/migrations  MySQL (FKs compostas, CHECKs)
 docker/              init do MySQL, realm do Keycloak, bootstrap do LocalStack, Prometheus

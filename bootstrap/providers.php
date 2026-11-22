@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\Billing\BillingServiceProvider;
 use App\Modules\Branding\BrandingServiceProvider;
 use App\Modules\Identity\IdentityServiceProvider;
 use App\Modules\Observability\ObservabilityServiceProvider;
@@ -13,5 +14,6 @@ return [
     IdentityServiceProvider::class,
     SchedulingServiceProvider::class,
     BrandingServiceProvider::class,
+    BillingServiceProvider::class,
     ObservabilityServiceProvider::class,
 ];
