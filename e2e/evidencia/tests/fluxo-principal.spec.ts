@@ -78,7 +78,7 @@ ${hoje}`,
   const resumoTokens: string[] = [];
   for (const papel of Object.keys(USUARIOS) as Papel[]) {
     const resp = await request.post(`${KEYCLOAK}/realms/estudios/protocol/openid-connect/token`, {
-      form: { grant_type: 'password', client_id: 'studio-web', username: USUARIOS[papel], password: SENHA },
+      form: { grant_type: 'password', client_id: 'studio-dev-cli', username: USUARIOS[papel], password: SENHA },
     });
     expect(resp.status(), `token de ${USUARIOS[papel]}`).toBe(200);
     tokens[papel] = (await resp.json()).access_token;

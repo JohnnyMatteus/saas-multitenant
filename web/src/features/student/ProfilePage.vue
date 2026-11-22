@@ -4,6 +4,7 @@ import { logout } from '@/auth/oidc'
 import { useStudioClock } from '@/composables/useStudioClock'
 import { timezoneLabel } from '@/lib/time'
 import { useUiStore } from '@/stores/ui'
+import WhatsAppLinkCard from './WhatsAppLinkCard.vue'
 
 const { me, timezone } = useStudioClock()
 const ui = useUiStore()
@@ -16,6 +17,7 @@ const ui = useUiStore()
     <p class="text-medium mb-0">{{ me.data.value.email }}</p>
     <p class="label text-medium mt-2">{{ me.data.value.studio.name }} · {{ timezoneLabel(timezone) }}</p>
   </div>
+  <WhatsAppLinkCard v-if="me.data.value" :timezone="timezone" class="mb-6" />
   <div class="d-flex flex-column ga-3">
     <v-btn variant="tonal" size="large" @click="ui.toggleTheme()">{{ ui.isDark ? 'Usar tema claro' : 'Usar tema escuro' }}</v-btn>
     <v-btn variant="outlined" size="large" :prepend-icon="mdiLogout" @click="logout()">Sair</v-btn>

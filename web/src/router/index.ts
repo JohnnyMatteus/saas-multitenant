@@ -46,7 +46,6 @@ const router = createRouter({
         { path: '', redirect: { name: 'agenda' } },
         { path: 'agenda', name: 'agenda', component: () => import('@/features/student/AgendaPage.vue'), meta: { title: 'Agenda' } },
         { path: 'minhas-aulas', name: 'my-classes', component: () => import('@/features/student/MyBookingsPage.vue'), meta: { title: 'Minhas aulas' } },
-        { path: 'para-voce', name: 'for-you', component: () => import('@/features/student/ForYouPage.vue'), meta: { title: 'Para você' } },
         { path: 'perfil', name: 'profile', component: () => import('@/features/student/ProfilePage.vue'), meta: { title: 'Perfil' } },
       ],
     },

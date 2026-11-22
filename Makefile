@@ -57,7 +57,7 @@ network: ## Cria a rede compartilhada do ecossistema (idempotente)
 
 token: ## Token de DEV de um usuário do realm de exemplo (KC_USER=...)
 	@curl -s -X POST http://localhost:$${KEYCLOAK_PORT:-8080}/realms/estudios/protocol/openid-connect/token \
-		-d grant_type=password -d client_id=studio-web \
+		-d grant_type=password -d client_id=studio-dev-cli \
 		-d username=$${KC_USER:-aluna.lotus@example.com} -d password=dev-only-change-me \
 		| php -r '$$t = json_decode(stream_get_contents(STDIN)); echo $$t->access_token ?? "erro: o Keycloak está no ar?", PHP_EOL;'
 
