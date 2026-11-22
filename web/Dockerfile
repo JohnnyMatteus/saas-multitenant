@@ -1,6 +1,6 @@
-FROM node:22.21-alpine AS build
+FROM node:22.22-alpine AS build
 WORKDIR /app
-COPY package.json package-lock.json ./
+COPY package.json package-lock.json .npmrc ./
 RUN npm ci
 COPY . .
 RUN npm run build
