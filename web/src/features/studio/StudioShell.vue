@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { mdiCalendarTodayOutline, mdiCalendarWeekOutline, mdiCogOutline, mdiLogout, mdiWeatherNight, mdiWhiteBalanceSunny } from '@mdi/js'
+import { mdiCalendarTodayOutline, mdiCalendarWeekOutline, mdiCogOutline, mdiTicketOutline, mdiLogout, mdiWeatherNight, mdiWhiteBalanceSunny } from '@mdi/js'
 import { computed } from 'vue'
 import { useDisplay } from 'vuetify'
 import { logout } from '@/auth/oidc'
@@ -16,7 +16,7 @@ const isAdmin = computed(() => me.data.value?.role === 'studio_admin')
 const nav = computed(() => [
   { to: { name: 'today' }, icon: mdiCalendarTodayOutline, label: 'Hoje' },
   { to: { name: 'week' }, icon: mdiCalendarWeekOutline, label: 'Semana' },
-  ...(isAdmin.value ? [{ to: { name: 'settings' }, icon: mdiCogOutline, label: 'Ajustes' }] : []),
+  ...(isAdmin.value ? [{ to: { name: 'settings' }, icon: mdiCogOutline, mdiTicketOutline, label: 'Ajustes' }] : []),
 ])
 const roleLabel = computed(() => (isAdmin.value ? 'admin do estúdio' : 'instrutor'))
 </script>

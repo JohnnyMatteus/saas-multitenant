@@ -11,8 +11,13 @@ import {
   sessionListSchema,
   sessionOneSchema,
   studioSettingsSchema,
+  lessonPackageListSchema,
+  lessonPackageOneSchema,
+  packageOrderListSchema,
+  packageOrderOneSchema,
   whatsAppCodeSchema,
   whatsAppLinkStatusSchema,
+  type CreatePackageInput,
   type CreateSeriesInput,
   type EditSessionInput,
 } from './schemas'
@@ -43,6 +48,15 @@ export const api = {
   whatsAppLink: async () => (await getJson('/me/whatsapp-link', whatsAppLinkStatusSchema)).data,
   issueWhatsAppCode: async () => (await sendJson('POST', '/me/whatsapp-link/code', whatsAppCodeSchema)).data,
   revokeWhatsAppLink: () => sendDelete('/me/whatsapp-link'),
+  lessonPackages: async () => (await getJson('/lesson-packages', lessonPackageListSchema)).data,
+  createLessonPackage: async (input: CreatePackageInput) =>
+    (await sendJson('POST', '/lesson-packages', lessonPackageOneSchema, { ...input })).data,
+  updateLessonPackage: async (id: string, input: { name?: string; price_cents?: number; active?: boolean }) =>
+    (await sendJson('PATCH', `/lesson-packages/${id}`, lessonPackageOneSchema, input)).data,
+  orderPackage: async (packageId: string) =>
+    (await sendJson('POST', '/package-orders', packageOrderOneSchema, { package_id: packageId })).data,
+  myPackageOrders: async () => (await getJson('/me/package-orders', packageOrderListSchema)).data,
+  packageOrders: async () => (await getJson('/package-orders', packageOrderListSchema)).data,
   createSeries: async (input: CreateSeriesInput) =>
     (await sendJson('POST', '/class-series', classSeriesSchema, { ...input })).data,
 }
