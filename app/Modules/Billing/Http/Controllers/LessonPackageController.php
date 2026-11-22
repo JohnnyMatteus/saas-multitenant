@@ -32,7 +32,8 @@ final class LessonPackageController
     {
         Gate::authorize('manage-lesson-packages');
 
-        $package = LessonPackage::query()->create([...$request->safe()->only(['name', 'lesson_count', 'price_cents']), 'currency' => 'BRL']);
+        // `active` explícito: o default do banco não volta para o modelo recém-criado.
+        $package = LessonPackage::query()->create([...$request->safe()->only(['name', 'lesson_count', 'price_cents']), 'currency' => 'BRL', 'active' => true]);
 
         return (new LessonPackageResource($package))->response()->setStatusCode(201);
     }
