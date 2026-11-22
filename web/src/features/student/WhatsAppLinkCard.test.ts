@@ -43,4 +43,29 @@ describe('WhatsAppLinkCard', () => {
 
     expect(calls.revokeWhatsAppLink).toHaveBeenCalledOnce()
   })
+
+  it('depois de desvincular, o código antigo não reaparece', async () => {
+    const unlinked = { linked: false, linked_at: null, code_pending: false }
+    calls.whatsAppLink
+      .mockResolvedValueOnce(unlinked)
+      // refetch depois de gerar o código: o aluno já confirmou no WhatsApp
+      .mockResolvedValueOnce({ linked: true, linked_at: '2026-11-20T15:00:00Z', code_pending: false })
+      // refetch depois de desvincular
+      .mockResolvedValue(unlinked)
+    calls.issueWhatsAppCode.mockResolvedValue({ code: '654321', expires_at: '2026-11-22T12:10:00Z' })
+    calls.revokeWhatsAppLink.mockResolvedValue(undefined)
+    const wrapper = render()
+    await flushPromises()
+
+    await wrapper.find('button').trigger('click')
+    await flushPromises()
+    expect(wrapper.find('[data-testid="wa-linked"]').exists()).toBe(true)
+
+    await wrapper.find('button').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="wa-linked"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="wa-code"]').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('654321')
+  })
 })

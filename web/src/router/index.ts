@@ -1,9 +1,10 @@
-import { createRouter, createWebHistory, type RouteLocationRaw } from 'vue-router'
+import { createRouter, createWebHistory } from 'vue-router'
 import { api } from '@/api/endpoints'
 import { keys } from '@/api/queries'
 import type { Role } from '@/api/schemas'
 import { currentUser, login } from '@/auth/oidc'
 import { queryClient } from '@/plugins/query'
+import { navigationGuard } from './guard'
 
 declare module 'vue-router' {
   interface RouteMeta {
@@ -12,9 +13,7 @@ declare module 'vue-router' {
   }
 }
 
-export function homeFor(role: Role): RouteLocationRaw {
-  return role === 'student' ? { name: 'agenda' } : { name: 'today' }
-}
+const loadMe = () => queryClient.ensureQueryData({ queryKey: keys.me, queryFn: api.me })
 
 const router = createRouter({
   history: createWebHistory(),
@@ -53,26 +52,7 @@ const router = createRouter({
   ],
 })
 
-router.beforeEach(async (to) => {
-  const roles = to.matched.flatMap((r) => r.meta.roles ?? [])
-  if (to.name === 'callback') return true
-
-  const user = await currentUser()
-  if (!user) {
-    if (roles.length) {
-      await login(to.fullPath)
-      return false
-    }
-    return true
-  }
-
-  const me = await queryClient.ensureQueryData({ queryKey: keys.me, queryFn: api.me })
-  if (to.name === 'login') return homeFor(me.role)
-
-  // Cada rota pode restringir mais que a mãe (ex.: configurações só para admin).
-  const allowed = to.matched.every((r) => !r.meta.roles || r.meta.roles.includes(me.role))
-  return allowed ? true : homeFor(me.role)
-})
+router.beforeEach((to) => navigationGuard(to, { currentUser, login, loadMe }))
 
 router.afterEach((to) => {
   document.title = to.meta.title ? `${to.meta.title} · Respiro` : 'Respiro · agenda do estúdio'
