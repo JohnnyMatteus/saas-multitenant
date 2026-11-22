@@ -163,6 +163,17 @@ O vídeo fica em `e2e/evidencia/test-results/*/video.webm`.
 - **Cancelamento pelo estúdio**: `POST /api/v1/sessions/{id}/cancel` cancela a aula e as reservas e avisa por e-mail quem tinha vaga e quem estava na fila.
 - **E-mails** pela fila Redis: confirmação de reserva, lembrete 24 h antes (`scheduling:maintain --reminders`, a cada 15 min), promoção da fila e cancelamento da aula.
 
+## Integrações
+
+Clients de serviço no realm `estudios` (Keycloak). Todos têm `serviceAccountsEnabled`, claim `tenant` fixa com o slug do estúdio e audiência `studio-api`. Os segredos são de DEV, marcados como `dev-only`, e ficam em `docker/keycloak/realm-estudios.json`; nunca os reutilize em outro ambiente.
+
+| Client | Para quê | Papel de realm |
+|---|---|---|
+| `lesson-recommender-estudio-lotus`, `lesson-recommender-pilates-equilibrio` | Serviço de recomendação de aulas: lê `GET /api/v1/sessions` e as reservas de cada sessão (a lista exige papel de equipe). | `studio_admin` |
+| `whatsapp-agent-estudio-lotus`, `whatsapp-agent-pilates-equilibrio` | Conta de serviço do agente de WhatsApp de cada estúdio. Chama as rotas de integração (`/api/v1/integrations/whatsapp/...`) e age como o aluno vinculado ao telefone do remetente (cabeçalho `X-WhatsApp-Contact`). | `whatsapp_agent` |
+
+O papel `whatsapp_agent` não dá acesso ao domínio por si só. A conta de serviço do WhatsApp não recebe `studio_admin`. Os usuários de serviço (`service-account-<client>`) carregam o atributo `tenant` do estúdio.
+
 ## Próximos passos
 
 1. Front-end **Vue 3** (OIDC + PKCE com o cliente `studio-web` já no realm).
