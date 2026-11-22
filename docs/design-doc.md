@@ -227,7 +227,7 @@ Admin envia dias da semana, horário local, duração, capacidade e período. `W
 ## 8. Observabilidade
 
 - **Logs**: JSON em stderr (canal `json`), uma linha por evento. Contexto compartilhado via `Context` do Laravel: `request_id`, `trace_id`, `tenant_id`, `user_id`. Eventos: `http_request` (método, rota-modelo, status, duração), `booking_created`, `booking_canceled`, `class_series_created`, `jwt_rejected`, `metrics_storage_failed`.
-- **Correlação/trace**: aceita `traceparent` (W3C) e `X-Request-Id` do gateway, ou gera novos; devolve `X-Request-Id` e `X-Trace-Id`. A exportação de spans via OpenTelemetry SDK fica para a próxima fase; o `trace_id` já casa logs com os traces do gateway.
+- **Correlação/trace**: aceita `traceparent` (W3C) e `X-Request-Id` do gateway, ou gera novos; devolve `X-Request-Id` e `X-Trace-Id`. Spans via OpenTelemetry SDK exportados por OTLP/HTTP ([ADR 0007](adr/0007-opentelemetry-sdk-e-exportacao-otlp.md)): span do request com o `traceparent` como pai e spans dos casos de uso de reserva e cancelamento; o `trace_id` dos logs é o do span.
 - **Métricas Prometheus** (`/metrics`, APCu entre workers):
   - `saas_http_requests_total{method,route,status}` e `saas_http_request_duration_seconds` (histograma) — RED por rota-modelo, sem IDs nos rótulos;
   - `saas_bookings_total{result}` (`confirmed`, `waitlisted`, `rejected_overlapping_booking`, ...);
@@ -244,6 +244,7 @@ Admin envia dias da semana, horário local, duração, capacidade e período. `W
 | Concorrência | Lock pessimista | Assentos com UNIQUE, contador atômico, otimista, Redis, SERIALIZABLE | 0004 |
 | Tempo | UTC + fuso do estúdio + materialização | Hora local, RRULE em leitura | 0005 |
 | Infra local | Compose com perfis, LocalStack, Mailpit, Redis | MinIO, SES local, fila no banco | 0006 |
+| Traces | OTel SDK + OTLP/HTTP | Extensão com auto-instrumentação, gRPC | 0007 |
 
 ## 10. Plano de evolução
 
@@ -251,7 +252,7 @@ Admin envia dias da semana, horário local, duração, capacidade e período. `W
 2. ~~Job de horizonte e edição de série~~ (entregue: `scheduling:maintain`, `PATCH /sessions/{id}`).
 3. ~~Cancelamento de aula pelo estúdio~~ (entregue).
 4. ~~E-mails de confirmação e lembrete~~ (entregue); preferências do aluno ficam para depois.
-5. **OpenTelemetry SDK** exportando spans para o Jaeger do `platform-edge`.
+5. ~~OpenTelemetry SDK exportando spans~~ (entregue; ADR 0007).
 6. ~~Teste de arquitetura de `BelongsToTenant`~~ (entregue: `TenantModelsTest`).
 7. **Export/import por tenant** (restauração isolada, portabilidade).
 8. **Usuário em vários estúdios** com seleção de estúdio no login.

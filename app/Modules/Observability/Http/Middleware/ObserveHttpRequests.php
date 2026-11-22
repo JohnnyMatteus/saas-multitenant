@@ -9,8 +9,14 @@ use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Str;
+use OpenTelemetry\API\Trace\Propagation\TraceContextPropagator;
+use OpenTelemetry\API\Trace\SpanKind;
+use OpenTelemetry\API\Trace\StatusCode;
+use OpenTelemetry\API\Trace\TracerProviderInterface;
+use OpenTelemetry\SemConv\Attributes\HttpAttributes;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\Response;
+use Throwable;
 
 /**
  * Primeiro middleware da pilha:
@@ -26,6 +32,7 @@ final readonly class ObserveHttpRequests
 
     public function __construct(
         private Metrics $metrics,
+        private TracerProviderInterface $tracers,
         private LoggerInterface $logger,
     ) {}
 
@@ -35,15 +42,49 @@ final readonly class ObserveHttpRequests
 
         Context::flush();
         $requestId = $this->requestId($request);
-        $traceId = $this->traceId($request);
-        Context::add(['request_id' => $requestId, 'trace_id' => $traceId]);
 
-        /** @var Response $response */
-        $response = $next($request);
+        // O trace do chamador (gateway, front-end) vira o pai do span desta requisição.
+        $parent = TraceContextPropagator::getInstance()->extract($this->traceHeaders($request));
+        $span = $this->tracers->getTracer('saas-multitenant')
+            ->spanBuilder('HTTP '.$request->method())
+            ->setParent($parent)
+            ->setSpanKind(SpanKind::KIND_SERVER)
+            ->startSpan();
+        // Com tracer real, o trace_id dos logs é o do span; no-op, o do traceparent ou um novo.
+        $traceId = $span->getContext()->isValid() ? $span->getContext()->getTraceId() : $this->traceId($request);
+        Context::add(['request_id' => $requestId, 'trace_id' => $traceId]);
+        $scope = $span->storeInContext($parent)->activate();
+
+        try {
+            /** @var Response $response */
+            $response = $next($request);
+        } catch (Throwable $e) {
+            $span->recordException($e);
+            $span->setStatus(StatusCode::STATUS_ERROR);
+            $span->end();
+
+            throw $e;
+        } finally {
+            $scope->detach();
+        }
 
         $seconds = (hrtime(true) - $startedAt) / 1e9;
         $route = $request->route()?->uri() ?? 'unmatched';
         $labels = ['method' => $request->method(), 'route' => $route, 'status' => (string) $response->getStatusCode()];
+
+        $status = $response->getStatusCode();
+        $span->updateName($request->method().' /'.ltrim($route, '/'));
+        $span->setAttribute(HttpAttributes::HTTP_REQUEST_METHOD, $request->method());
+        $span->setAttribute(HttpAttributes::HTTP_ROUTE, $route);
+        $span->setAttribute(HttpAttributes::HTTP_RESPONSE_STATUS_CODE, $status);
+        $tenantId = Context::get('tenant_id');
+        if (is_string($tenantId)) {
+            $span->setAttribute('tenant.id', $tenantId);
+        }
+        if ($status >= 500) {
+            $span->setStatus(StatusCode::STATUS_ERROR);
+        }
+        $span->end();
 
         $this->metrics->increment('http_requests_total', 'Requisições HTTP por rota e status.', $labels);
         $this->metrics->observe(
@@ -69,6 +110,17 @@ final readonly class ObserveHttpRequests
         $incoming = (string) $request->headers->get('X-Request-Id', '');
 
         return preg_match('/^[A-Za-z0-9._-]{1,64}$/', $incoming) === 1 ? $incoming : (string) Str::uuid();
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function traceHeaders(Request $request): array
+    {
+        return array_filter([
+            'traceparent' => (string) $request->headers->get('traceparent', ''),
+            'tracestate' => (string) $request->headers->get('tracestate', ''),
+        ], fn (string $v): bool => $v !== '');
     }
 
     /**

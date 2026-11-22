@@ -154,6 +154,7 @@ Respiro tem duas faces em `web/` (Vue 3, Vuetify 3, TanStack Query, login OIDC n
 | [0004](docs/adr/0004-lock-pessimista-na-reserva.md) | Lock pessimista na reserva, ordem fixa de locks |
 | [0005](docs/adr/0005-utc-no-banco-e-fuso-do-estudio.md) | UTC no banco, regras no fuso do estúdio, ocorrências materializadas |
 | [0006](docs/adr/0006-infraestrutura-local-com-docker.md) | Compose com perfis, Redis, Mailpit, LocalStack (S3) |
+| [0007](docs/adr/0007-opentelemetry-sdk-e-exportacao-otlp.md) | OpenTelemetry SDK, exportação OTLP/HTTP, no-op sem endpoint |
 
 ## Trade-offs
 
@@ -182,10 +183,13 @@ Clients de serviço no realm `estudios` (Keycloak). Todos têm `serviceAccountsE
 
 O papel `whatsapp_agent` não dá acesso ao domínio por si só. A conta de serviço do WhatsApp não recebe `studio_admin`. Os usuários de serviço (`service-account-<client>`) carregam o atributo `tenant` do estúdio.
 
+## Observabilidade: spans
+
+A API exporta spans por OTLP/HTTP quando `OTEL_EXPORTER_OTLP_ENDPOINT` está definido ([ADR 0007](docs/adr/0007-opentelemetry-sdk-e-exportacao-otlp.md)). `make up-all` sobe um Jaeger local (UI em http://localhost:16688) e liga a exportação. Não foi exercitado contra um Jaeger real; os testes verificam os spans gerados e o corpo OTLP/JSON enviado. Para usar o Jaeger do `platform-edge` ele precisa estar na rede `portfolio-net`.
+
 ## Próximos passos
 
 1. Front-end **Vue 3** (OIDC + PKCE com o cliente `studio-web` já no realm).
-2. Exportação de spans com **OpenTelemetry SDK** (hoje há propagação de `traceparent` e `trace_id` nos logs).
 3. Export/import por tenant; usuário em vários estúdios com seleção no login.
 4. Pacotes de aulas e pagamentos (integração com o processador de pagamentos do portfólio).
 5. Smoke test da stack completa (`make up`) no CI. Nesta rodada foram validados localmente o `docker compose config`, a importação do realm e um login real no Keycloak validado pela API; o build da imagem e a subida de todos os serviços ficam a cargo do job `build` do CI.

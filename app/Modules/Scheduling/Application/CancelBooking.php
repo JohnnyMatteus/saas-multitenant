@@ -6,6 +6,7 @@ namespace App\Modules\Scheduling\Application;
 
 use App\Modules\Identity\Models\Role;
 use App\Modules\Identity\Models\User;
+use App\Modules\Observability\Tracing\Tracing;
 use App\Modules\Scheduling\Domain\BookingStatus;
 use App\Modules\Scheduling\Domain\CancellationWindow;
 use App\Modules\Scheduling\Domain\Exceptions\BookingAlreadyCanceled;
@@ -35,13 +36,18 @@ final readonly class CancelBooking
         private TenantContext $tenantContext,
         private WaitlistPromoter $promoter,
         private LoggerInterface $logger,
+        private Tracing $tracing,
     ) {}
 
     public function handle(User $actor, Booking $booking): CancellationResult
     {
-        $result = $this->db->transaction(
-            fn (): CancellationResult => $this->cancel($actor, $booking),
-            self::DEADLOCK_RETRIES,
+        $result = $this->tracing->span(
+            'scheduling.cancel_booking',
+            fn (): CancellationResult => $this->db->transaction(
+                fn (): CancellationResult => $this->cancel($actor, $booking),
+                self::DEADLOCK_RETRIES,
+            ),
+            ['booking.id' => $booking->id],
         );
 
         $this->logger->info('booking_canceled', [
