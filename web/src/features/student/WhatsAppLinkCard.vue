@@ -10,6 +10,11 @@ const status = useWhatsAppLink()
 const issue = useIssueWhatsAppCode()
 const revoke = useRevokeWhatsAppLink()
 
+// O código da mutação anterior não pode reaparecer depois de desvincular.
+function onRevoke() {
+  revoke.mutate(undefined, { onSuccess: () => issue.reset() })
+}
+
 const code = computed(() => issue.data.value)
 const error = computed(() => {
   const e = issue.error.value ?? revoke.error.value ?? status.error.value
@@ -27,7 +32,7 @@ const error = computed(() => {
       <p v-if="status.data.value.linked" class="mb-3" data-testid="wa-linked">
         Telefone vinculado{{ status.data.value.linked_at ? ` em ${formatInStudio(status.data.value.linked_at, props.timezone, "dd/MM/yyyy HH:mm")}` : '' }}.
       </p>
-      <v-btn v-if="status.data.value.linked" variant="outlined" :loading="revoke.isPending.value" @click="revoke.mutate()">
+      <v-btn v-if="status.data.value.linked" variant="outlined" :loading="revoke.isPending.value" @click="onRevoke">
         Desvincular telefone
       </v-btn>
       <template v-else>

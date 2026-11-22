@@ -12,8 +12,8 @@ help: ## Lista os alvos
 up: ## Sobe o núcleo (API, worker, MySQL, Redis, Keycloak, Mailpit, LocalStack)
 	$(CORE) up -d --build --wait
 
-up-all: ## Núcleo + Prometheus + Adminer
-	$(ALL) up -d --build --wait
+up-all: ## Núcleo + Prometheus + Jaeger (spans) + Adminer
+	OTEL_EXPORTER_OTLP_ENDPOINT=$${OTEL_EXPORTER_OTLP_ENDPOINT:-http://jaeger:4318} $(ALL) up -d --build --wait
 
 up-portfolio: network ## Núcleo ligado também à rede compartilhada portfolio-net
 	$(CORE) -f docker-compose.yml -f docker-compose.portfolio.yml up -d --build --wait

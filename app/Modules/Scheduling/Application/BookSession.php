@@ -6,6 +6,7 @@ namespace App\Modules\Scheduling\Application;
 
 use App\Modules\Identity\Models\User;
 use App\Modules\Observability\Metrics;
+use App\Modules\Observability\Tracing\Tracing;
 use App\Modules\Scheduling\Domain\BookingStatus;
 use App\Modules\Scheduling\Domain\Exceptions\AlreadyBooked;
 use App\Modules\Scheduling\Domain\Exceptions\OverlappingBooking;
@@ -41,9 +42,17 @@ final readonly class BookSession
         private Metrics $metrics,
         private LoggerInterface $logger,
         private Dispatcher $events,
+        private Tracing $tracing,
     ) {}
 
     public function handle(User $member, string $sessionId): Booking
+    {
+        return $this->tracing->span('scheduling.book_session', fn (): Booking => $this->run($member, $sessionId), [
+            'session.id' => $sessionId,
+        ]);
+    }
+
+    private function run(User $member, string $sessionId): Booking
     {
         try {
             $booking = $this->db->transaction(

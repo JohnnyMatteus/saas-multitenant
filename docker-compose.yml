@@ -30,6 +30,9 @@ x-app-env: &app-env
   MAIL_PORT: "1025"
   MAIL_FROM_ADDRESS: agenda@example.com
   METRICS_STORAGE: apcu
+  # Vazio = sem exportação de spans. Com o perfil observability: OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318
+  OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+  OTEL_SERVICE_NAME: saas-multitenant-api
   AUTH_JWT_MODE: jwks
   AUTH_JWT_ISSUER: http://localhost:${KEYCLOAK_PORT:-8080}/realms/estudios
   AUTH_JWT_AUDIENCE: studio-api
@@ -230,6 +233,20 @@ services:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:9090/-/ready"]
       interval: 10s
       timeout: 3s
+      retries: 10
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.65.0
+    profiles: [observability]
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "127.0.0.1:${JAEGER_UI_PORT:-16688}:16686"
+    networks: [studio-net]
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:14269/"]
+      interval: 10s
+      timeout: 5s
       retries: 10
 
   adminer:

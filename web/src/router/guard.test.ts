@@ -1,63 +1,66 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { Me, Role } from '@/api/schemas'
+import { navigationGuard, type GuardDeps } from './guard'
 
-const mocks = vi.hoisted(() => ({ currentUser: vi.fn(), login: vi.fn(), me: vi.fn() }))
-vi.mock('@/auth/oidc', () => ({ currentUser: mocks.currentUser, login: mocks.login }))
-vi.mock('@/api/endpoints', () => ({ api: { me: mocks.me } }))
+const meOf = (role: Role): Me => ({
+  id: '1',
+  name: 'Pessoa',
+  email: null,
+  role,
+  studio: { id: 's', slug: 'x', name: 'X', timezone: 'America/Sao_Paulo' },
+})
 
-const meOf = (role: string) => ({ id: '1', name: 'Pessoa', email: null, role, studio: { id: 's', slug: 'x', name: 'X', timezone: 'America/Sao_Paulo' } })
-
-async function freshRouter() {
-  vi.resetModules()
-  return (await import('./index')).default
-}
+// Mesma estrutura das rotas reais: filha herda o papel da mãe e pode restringir mais.
+const studio = { meta: { roles: ['studio_admin', 'instructor'] } }
+const target = (name: string, ...matched: object[]) =>
+  ({ name, fullPath: `/${name}`, matched: matched.length ? matched : [{ meta: {} }] }) as unknown as Parameters<typeof navigationGuard>[0]
 
 describe('guarda do router', () => {
+  const deps = { currentUser: vi.fn(), login: vi.fn(), loadMe: vi.fn() } satisfies GuardDeps
   beforeEach(() => {
     vi.resetAllMocks()
-    mocks.login.mockResolvedValue(undefined)
+    deps.login.mockResolvedValue(undefined)
   })
 
-  it('sem sessão, rota protegida manda para o login OIDC e não navega', async () => {
-    mocks.currentUser.mockResolvedValue(null)
-    const router = await freshRouter()
+  it('sem sessão, rota protegida manda para o login OIDC com o destino e não navega', async () => {
+    deps.currentUser.mockResolvedValue(null)
 
-    await router.push('/estudio/semana')
+    const result = await navigationGuard(target('week', studio), deps)
 
-    expect(mocks.login).toHaveBeenCalledWith('/estudio/semana')
-    expect(router.currentRoute.value.path).not.toBe('/estudio/semana')
+    expect(result).toBe(false)
+    expect(deps.login).toHaveBeenCalledWith('/week')
   })
 
-  it('aluno não entra no painel do estúdio', async () => {
-    mocks.currentUser.mockResolvedValue({ access_token: 't' })
-    mocks.me.mockResolvedValue(meOf('student'))
-    const router = await freshRouter()
+  it('sem sessão, a página de login e o callback seguem abertos', async () => {
+    deps.currentUser.mockResolvedValue(null)
 
-    await router.push('/estudio/hoje')
-
-    expect(router.currentRoute.value.name).toBe('agenda')
+    expect(await navigationGuard(target('login'), deps)).toBe(true)
+    expect(await navigationGuard(target('callback', studio), deps)).toBe(true)
+    expect(deps.login).not.toHaveBeenCalled()
   })
 
-  it('instrutor não abre as configurações do estúdio, só o admin', async () => {
-    mocks.currentUser.mockResolvedValue({ access_token: 't' })
-    mocks.me.mockResolvedValue(meOf('instructor'))
-    const router = await freshRouter()
+  it('aluno não entra no painel do estúdio e volta para a agenda', async () => {
+    deps.currentUser.mockResolvedValue({})
+    deps.loadMe.mockResolvedValue(meOf('student'))
 
-    await router.push('/estudio/configuracoes')
-    expect(router.currentRoute.value.name).toBe('today')
-
-    mocks.me.mockResolvedValue(meOf('studio_admin'))
-    const admin = await freshRouter()
-    await admin.push('/estudio/configuracoes')
-    expect(admin.currentRoute.value.name).toBe('settings')
+    expect(await navigationGuard(target('today', studio), deps)).toEqual({ name: 'agenda' })
   })
 
-  it('o papel vem da API, não do cliente: aluno autenticado vai para a agenda ao abrir a raiz', async () => {
-    mocks.currentUser.mockResolvedValue({ access_token: 't' })
-    mocks.me.mockResolvedValue(meOf('student'))
-    const router = await freshRouter()
+  it('instrutor não abre as configurações, só o admin', async () => {
+    deps.currentUser.mockResolvedValue({})
+    const settings = { meta: { roles: ['studio_admin'] } }
 
-    await router.push('/')
+    deps.loadMe.mockResolvedValue(meOf('instructor'))
+    expect(await navigationGuard(target('settings', studio, settings), deps)).toEqual({ name: 'today' })
 
-    expect(router.currentRoute.value.name).toBe('agenda')
+    deps.loadMe.mockResolvedValue(meOf('studio_admin'))
+    expect(await navigationGuard(target('settings', studio, settings), deps)).toBe(true)
+  })
+
+  it('autenticado que abre a raiz vai para a home do papel que a API devolveu', async () => {
+    deps.currentUser.mockResolvedValue({})
+    deps.loadMe.mockResolvedValue(meOf('student'))
+
+    expect(await navigationGuard(target('login'), deps)).toEqual({ name: 'agenda' })
   })
 })
