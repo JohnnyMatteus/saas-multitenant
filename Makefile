@@ -4,7 +4,7 @@ CORE    := $(COMPOSE) --profile core
 ALL     := $(COMPOSE) --profile core --profile observability --profile tools
 
 .DEFAULT_GOAL := help
-.PHONY: help web-dev up up-all up-portfolio down logs ps seed test test-unit test-integration lint stan check clean network token evidencia
+.PHONY: help smoke web-dev up up-all up-portfolio down logs ps seed test test-unit test-integration lint stan check clean network token evidencia
 
 help: ## Lista os alvos
 	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-18s %s\n", $$1, $$2}'
@@ -60,6 +60,9 @@ token: ## Token de DEV de um usuário do realm de exemplo (KC_USER=...)
 		-d grant_type=password -d client_id=studio-dev-cli \
 		-d username=$${KC_USER:-aluna.lotus@example.com} -d password=dev-only-change-me \
 		| php -r '$$t = json_decode(stream_get_contents(STDIN)); echo $$t->access_token ?? "erro: o Keycloak está no ar?", PHP_EOL;'
+
+smoke: ## Smoke da stack já no ar (make up): login real, reserva, isolamento, pacotes, export, front, e-mail
+	bash scripts/smoke.sh
 
 evidencia: ## Sobe a stack, zera os dados e grava o vídeo do fluxo principal (Playwright)
 	$(COMPOSE) --profile core --profile observability up -d --build --wait

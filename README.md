@@ -115,6 +115,8 @@ Outros alvos: `make logs`, `make seed`, `make down`, `make clean`, `make network
 
 ## Como testar
 
+Smoke da stack inteira (CI, job `smoke`; localmente com `make up && make smoke`): login real no Keycloak, aula, reserva, 404 entre estúdios, token adulterado, pacotes, export, front pelo nginx e e-mail pela fila.
+
 ```bash
 make test               # sobe só o MySQL e roda toda a suíte
 make test-unit          # unitários (sem banco)
@@ -201,10 +203,13 @@ A API exporta spans por OTLP/HTTP quando `OTEL_EXPORTER_OTLP_ENDPOINT` está def
 
 ## Próximos passos
 
-1. Front-end **Vue 3** (OIDC + PKCE com o cliente `studio-web` já no realm).
-3. Importação por tenant e usuário em vários estúdios com seleção no login: aguardam decisão do autor (export já existe).
-4. Créditos dos pacotes (concessão, consumo, devolução, validade, estorno): aguardam decisão do autor.
-5. Smoke test da stack completa (`make up`) no CI. Nesta rodada foram validados localmente o `docker compose config`, a importação do realm e um login real no Keycloak validado pela API; o build da imagem e a subida de todos os serviços ficam a cargo do job `build` do CI.
+Só o que de fato falta (o resto do que o design doc prometia já existe; ver ADRs 0007 a 0009):
+
+1. **Créditos dos pacotes** (concessão, consumo na reserva, devolução no cancelamento, validade, estorno): o pedido já vira "pago", mas não dá crédito. Aguarda decisão do autor ([ADR 0008](docs/adr/0008-pacotes-de-aulas-e-eventos-de-pagamento.md)).
+2. **Usuário em vários estúdios com seleção no login**: aguarda decisão do autor sobre o mecanismo no Keycloak (hoje o token tem uma claim `tenant`).
+3. **Importação por estúdio**, remoção de dados e prazo de retenção: aguardam decisão do autor ([ADR 0009](docs/adr/0009-exportacao-de-dados-por-estudio.md)).
+4. **Validar contra serviços reais**: o consumidor de pagamentos (processador e RabbitMQ), a exportação de spans (Jaeger) e o realm novo (`studio-dev-cli`) só foram testados com dublês e `config`; o smoke do CI (`scripts/smoke.sh`) cobre o resto da stack, sem o processador de pagamentos nem o Jaeger.
+5. Propagar o trace da requisição para os jobs da fila, e o Jaeger do `platform-edge` na rede `portfolio-net`.
 
 ## Licença
 
