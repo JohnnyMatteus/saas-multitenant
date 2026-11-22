@@ -133,11 +133,8 @@ check 'CSP no front' 1 "$(curl -sI "$WEB/" | grep -ci '^content-security-policy:
 check 'CSP tambem nos assets' 1 "$(curl -s "$WEB/" | grep -o '/assets/[^"]*\.js' | head -1 | xargs -I{} curl -sI "$WEB{}" | grep -ci '^content-security-policy:')"
 
 echo '== cancelamento, fila de e-mail e metricas'
-check 'aluna cancela: 200' 200 "$(request POST "$API/api/v1/bookings/$BOOKING_ID/cancel" "$ALUNA")"
-check 'reserva cancelada' canceled "$(jq -r '.data.canceled.status' "$work/body")"
-check 'cancelar de novo: 409' 409 "$(request POST "$API/api/v1/bookings/$BOOKING_ID/cancel" "$ALUNA")"
-
-# O e-mail de confirmacao sai pela fila Redis e pelo worker: espera ate 60 s.
+# O e-mail de confirmacao sai pela fila Redis e pelo worker: espera ate 60 s, antes de cancelar
+# (reserva cancelada nao recebe confirmacao).
 mail_count=0
 for _ in $(seq 1 30); do
   mail_count="$(curl -fsS "$MAILPIT/api/v1/messages" | jq '[.messages[] | select(any(.To[]; .Address=="aluna.lotus@example.com"))] | length')"
@@ -145,6 +142,10 @@ for _ in $(seq 1 30); do
   sleep 2
 done
 check 'e-mail de confirmacao chegou ao Mailpit (fila Redis + worker)' 1 "$([ "$mail_count" -ge 1 ] && echo 1 || echo 0)"
+
+check 'aluna cancela: 200' 200 "$(request POST "$API/api/v1/bookings/$BOOKING_ID/cancel" "$ALUNA")"
+check 'reserva cancelada' canceled "$(jq -r '.data.canceled.status' "$work/body")"
+check 'cancelar de novo: 409' 409 "$(request POST "$API/api/v1/bookings/$BOOKING_ID/cancel" "$ALUNA")"
 
 curl -fsS "$API/metrics" -o "$work/metrics"
 contains 'metrica de reservas confirmadas' "$work/metrics" 'saas_bookings_total{result="confirmed"}'
