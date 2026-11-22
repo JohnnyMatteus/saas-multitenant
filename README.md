@@ -48,6 +48,7 @@ flowchart LR
 | `Identity` | Validação de JWT, JWKS com cache e rotação, papéis, provisionamento JIT | Shared, Tenancy |
 | `Scheduling` | Recorrência no fuso, reserva com locks, fila, cancelamento, policies | Shared, Tenancy, Identity, Observability |
 | `Branding` | Logo do estúdio no S3, prefixado por tenant | Shared, Tenancy, Identity |
+| `Portability` | Exportação dos dados do estúdio | Shared, Tenancy, Identity, Observability, Scheduling, Billing |
 | `Billing` | Catálogo de pacotes, pedidos e consumo dos eventos do processador de pagamentos | Shared, Tenancy, Identity, Observability |
 | `Observability` | Correlação (`traceparent`, `X-Request-Id`), log de acesso JSON, métricas | Shared |
 
@@ -69,6 +70,7 @@ Fronteiras verificadas por teste (`tests/Unit/Architecture/ModuleBoundariesTest.
 | `GET/POST /lesson-packages`, `PATCH /lesson-packages/{id}` | todos (só ativos) / admin | Catálogo de pacotes de aulas |
 | `POST /package-orders`, `GET /me/package-orders` | aluno | Pedido de pacote (devolve o `payment_id`) e meus pedidos |
 | `GET /package-orders` | admin | Pedidos do estúdio |
+| `GET /studio/export` | admin | Baixa os dados do estúdio em JSON (streaming, auditado, 5 por hora) |
 
 Erros em `application/problem+json` com `type` estável (`overlapping_booking`, `cancellation_window_closed`, `already_booked`...). Fora da API: `GET /up` (health) e `GET /metrics` (Prometheus).
 
@@ -160,6 +162,7 @@ Respiro tem duas faces em `web/` (Vue 3, Vuetify 3, TanStack Query, login OIDC n
 | [0006](docs/adr/0006-infraestrutura-local-com-docker.md) | Compose com perfis, Redis, Mailpit, LocalStack (S3) |
 | [0007](docs/adr/0007-opentelemetry-sdk-e-exportacao-otlp.md) | OpenTelemetry SDK, exportação OTLP/HTTP, no-op sem endpoint |
 | [0008](docs/adr/0008-pacotes-de-aulas-e-eventos-de-pagamento.md) | Pacotes de aulas, pedido com `payment_id` próprio e eventos do processador (créditos pendentes) |
+| [0009](docs/adr/0009-exportacao-de-dados-por-estudio.md) | Exportação por estúdio em streaming, só admin, auditada; import e remoção pendentes |
 
 ## Trade-offs
 
@@ -199,7 +202,7 @@ A API exporta spans por OTLP/HTTP quando `OTEL_EXPORTER_OTLP_ENDPOINT` está def
 ## Próximos passos
 
 1. Front-end **Vue 3** (OIDC + PKCE com o cliente `studio-web` já no realm).
-3. Export/import por tenant; usuário em vários estúdios com seleção no login.
+3. Importação por tenant e usuário em vários estúdios com seleção no login: aguardam decisão do autor (export já existe).
 4. Créditos dos pacotes (concessão, consumo, devolução, validade, estorno): aguardam decisão do autor.
 5. Smoke test da stack completa (`make up`) no CI. Nesta rodada foram validados localmente o `docker compose config`, a importação do realm e um login real no Keycloak validado pela API; o build da imagem e a subida de todos os serviços ficam a cargo do job `build` do CI.
 

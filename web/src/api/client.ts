@@ -66,6 +66,13 @@ export function sendDelete(path: string): Promise<void> {
   })
 }
 
+export function getFile(path: string): Promise<{ blob: Blob; disposition: string | null }> {
+  return call(async () => {
+    const response = await http.raw(path, { responseType: 'blob' })
+    return { blob: response._data as Blob, disposition: response.headers.get('Content-Disposition') }
+  })
+}
+
 export function getBlob(path: string): Promise<Blob | null> {
   return call(async () => {
     try {

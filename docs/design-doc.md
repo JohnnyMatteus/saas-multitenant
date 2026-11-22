@@ -255,7 +255,7 @@ Admin envia dias da semana, horário local, duração, capacidade e período. `W
 4. ~~E-mails de confirmação e lembrete~~ (entregue); preferências do aluno ficam para depois.
 5. ~~OpenTelemetry SDK exportando spans~~ (entregue; ADR 0007).
 6. ~~Teste de arquitetura de `BelongsToTenant`~~ (entregue: `TenantModelsTest`).
-7. **Export/import por tenant** (restauração isolada, portabilidade).
+7. **Export por tenant** entregue ([ADR 0009](adr/0009-exportacao-de-dados-por-estudio.md)); **import** (restauração isolada) pendente de decisão do autor.
 8. **Usuário em vários estúdios** com seleção de estúdio no login.
 9. **Planos e pacotes de aulas**: catálogo, pedido e consumo dos eventos do processador entregues (ADR 0008); **créditos** (concessão, consumo, devolução, validade, estorno) pendentes de decisão.
 10. **Rate limit por tenant** no gateway e quotas por plano.

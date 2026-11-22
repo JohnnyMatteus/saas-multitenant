@@ -25,6 +25,7 @@ final class ModuleBoundariesTest extends TestCase
         'Scheduling' => ['Shared', 'Tenancy', 'Identity', 'Observability'],
         'Branding' => ['Shared', 'Tenancy', 'Identity'],
         'Billing' => ['Shared', 'Tenancy', 'Identity', 'Observability'],
+        'Portability' => ['Shared', 'Tenancy', 'Identity', 'Observability', 'Scheduling', 'Billing'],
     ];
 
     /**

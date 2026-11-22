@@ -1,4 +1,4 @@
-import { getBlob, getJson, sendDelete, sendJson } from './client'
+import { getBlob, getFile, getJson, sendDelete, sendJson } from './client'
 import {
   bookingListSchema,
   bookingOneSchema,
@@ -28,6 +28,7 @@ export const api = {
   updateStudio: async (input: { name?: string; cancellation_window_minutes?: number }) =>
     (await sendJson('PATCH', '/studio', studioSettingsSchema, input)).data,
   logo: () => getBlob('/studio/logo'),
+  exportStudio: () => getFile('/studio/export'),
   uploadLogo: async (file: File) => {
     const form = new FormData()
     form.append('logo', file)
