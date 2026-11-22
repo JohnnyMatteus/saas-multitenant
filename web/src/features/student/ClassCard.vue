@@ -9,6 +9,7 @@ const props = defineProps<{ session: ClassSession; booking?: Booking; now: Date;
 defineEmits<{ book: []; cancel: [] }>()
 
 const started = computed(() => new Date(props.session.starts_at) <= props.now)
+const canceled = computed(() => !!props.session.canceled_at)
 const ended = computed(() => new Date(props.session.ends_at) <= props.now)
 const status = computed(() => props.booking?.status)
 const canCancel = computed(() => {
@@ -47,7 +48,10 @@ const minutes = computed(() => Math.round((new Date(props.session.ends_at).getTi
     />
 
     <div class="card__actions">
-      <template v-if="ended">
+      <template v-if="canceled">
+        <span class="label warning-text">Aula cancelada pelo estúdio{{ session.cancel_reason ? `: ${session.cancel_reason}` : '' }}</span>
+      </template>
+      <template v-else-if="ended">
         <span class="label text-medium">{{ status === 'confirmed' ? 'Você esteve nesta aula' : 'Aula encerrada' }}</span>
       </template>
       <template v-else-if="status === 'confirmed'">

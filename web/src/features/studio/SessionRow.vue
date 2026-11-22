@@ -7,11 +7,12 @@ import { hhmm } from '@/lib/time'
 const props = defineProps<{ session: ClassSession; now: Date; canOpen: boolean; mine?: boolean; highlighted?: boolean }>()
 
 const started = computed(() => new Date(props.session.starts_at) <= props.now)
+const canceled = computed(() => !!props.session.canceled_at)
 const ended = computed(() => new Date(props.session.ends_at) <= props.now)
 </script>
 
 <template>
-  <article class="row" :class="{ 'row--ended': ended, 'row--highlighted': highlighted }" :data-session="session.id">
+  <article class="row" :class="{ 'row--ended': ended || canceled, 'row--highlighted': highlighted }" :data-session="session.id">
     <div class="row__time">
       <span class="time row__start">{{ hhmm(session.starts_at, session.timezone) }}</span>
       <span class="label tnum text-medium">{{ hhmm(session.ends_at, session.timezone) }}</span>
@@ -25,7 +26,8 @@ const ended = computed(() => new Date(props.session.ends_at) <= props.now)
     </div>
     <div class="row__mats">
       <MatRow :capacity="session.capacity" :confirmed="session.confirmed_count" :waitlist="session.waitlist_count" :started="started && !ended" caption />
-      <span v-if="ended" class="label text-medium">encerrada</span>
+      <span v-if="canceled" class="label text-medium">cancelada{{ session.cancel_reason ? `: ${session.cancel_reason}` : '' }}</span>
+      <span v-else-if="ended" class="label text-medium">encerrada</span>
     </div>
     <div class="row__action">
       <v-btn v-if="canOpen" variant="tonal" color="primary" size="small" height="36" :to="{ name: 'roster', params: { id: session.id } }">ver lista</v-btn>

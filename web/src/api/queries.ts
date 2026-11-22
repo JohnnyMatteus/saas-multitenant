@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { computed, onScopeDispose, ref, toValue, watch, type MaybeRefOrGetter } from 'vue'
 import { api } from './endpoints'
+import type { EditSessionInput } from './schemas'
 
 export const keys = {
   me: ['me'] as const,
@@ -77,6 +78,22 @@ export function useBook() {
 export function useCancelBooking() {
   const invalidate = useInvalidateSchedule()
   return useMutation({ mutationFn: api.cancelBooking, onSettled: invalidate })
+}
+
+export function useEditSession() {
+  const invalidate = useInvalidateSchedule()
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: EditSessionInput }) => api.editSession(id, input),
+    onSuccess: invalidate,
+  })
+}
+
+export function useCancelSession() {
+  const invalidate = useInvalidateSchedule()
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: string | null }) => api.cancelSession(id, reason),
+    onSuccess: invalidate,
+  })
 }
 
 export function useCreateSeries() {

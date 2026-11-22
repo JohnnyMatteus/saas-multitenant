@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bookingSchema, wasPromoted } from './schemas'
+import { bookingSchema, sessionEditResultSchema, skipReasonLabels, wasPromoted } from './schemas'
 
 const base = { id: 'b1', session_id: 's1', status: 'confirmed', waitlist_position: null, canceled_at: null }
 
@@ -12,5 +12,13 @@ describe('mapeamento da API', () => {
   })
   it('rejeita status desconhecido na fronteira', () => {
     expect(() => bookingSchema.parse({ ...base, status: 'x', queued_at: 'a', confirmed_at: null })).toThrow()
+  })
+})
+
+describe('edição de aulas', () => {
+  it('lê o resultado com aulas puladas e o motivo', () => {
+    const r = sessionEditResultSchema.parse({ data: { series_id: 's', updated: ['a'], skipped: [{ session_id: 'b', reasons: ['has_bookings'] }] } })
+    expect(r.data.skipped[0]?.reasons[0]).toBe('has_bookings')
+    expect(skipReasonLabels['has_bookings']).toBeTruthy()
   })
 })

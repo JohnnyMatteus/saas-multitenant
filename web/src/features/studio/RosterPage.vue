@@ -3,8 +3,9 @@ import { mdiArrowLeft, mdiArrowUp } from '@mdi/js'
 import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { ApiError } from '@/api/client'
-import { useCancelBooking, useRoster, useSession } from '@/api/queries'
+import { useCancelBooking, useCancelSession, useRoster, useSession } from '@/api/queries'
 import { wasPromoted, type Booking } from '@/api/schemas'
+import EditSessionDialog from './EditSessionDialog.vue'
 import StateBlock from '@/components/StateBlock.vue'
 import MatRow from '@/components/signature/MatRow.vue'
 import { useStudioClock } from '@/composables/useStudioClock'
@@ -17,6 +18,22 @@ const { me, now, timezone } = useStudioClock()
 const session = useSession(id)
 const roster = useRoster(id, () => session.isSuccess.value)
 const cancel = useCancelBooking()
+const cancelSession = useCancelSession()
+const editOpen = ref(false)
+const cancelOpen = ref(false)
+const cancelReason = ref('')
+const isCanceled = computed(() => !!session.data.value?.canceled_at)
+
+async function confirmCancelSession() {
+  try {
+    await cancelSession.mutateAsync({ id: id.value, reason: cancelReason.value.trim() || null })
+    feedback.value = 'Aula cancelada. Quem tinha reserva ou estava na fila foi avisado por e-mail.'
+    cancelOpen.value = false
+    cancelReason.value = ''
+  } catch (error) {
+    feedback.value = error instanceof ApiError ? error.message : 'Não foi possível cancelar a aula.'
+  }
+}
 
 const isAdmin = computed(() => me.data.value?.role === 'studio_admin')
 const confirmed = computed(() => (roster.data.value ?? []).filter((b) => b.status === 'confirmed'))
@@ -68,6 +85,13 @@ const forbidden = computed(() => roster.error.value instanceof ApiError && roste
         <v-chip v-if="started && !ended" class="ml-2" color="warning">em andamento</v-chip>
         <v-chip v-else-if="ended" class="ml-2">encerrada</v-chip>
       </p>
+      <v-alert v-if="isCanceled" type="warning" variant="tonal" class="mb-4" title="Aula cancelada">
+        {{ session.data.value.cancel_reason || 'Sem motivo informado.' }}
+      </v-alert>
+      <div v-if="isAdmin && !ended && !isCanceled" class="d-flex ga-2 mb-4">
+        <v-btn variant="tonal" color="primary" @click="editOpen = true">Editar aula</v-btn>
+        <v-btn variant="text" color="error" @click="cancelOpen = true">Cancelar aula</v-btn>
+      </div>
       <MatRow
         :capacity="session.data.value.capacity"
         :confirmed="session.data.value.confirmed_count"
@@ -118,6 +142,22 @@ const forbidden = computed(() => roster.error.value instanceof ApiError && roste
       </section>
     </div>
   </template>
+
+  <EditSessionDialog v-if="session.data.value" v-model="editOpen" :session="session.data.value" @done="feedback = $event" />
+
+  <v-dialog v-model="cancelOpen" max-width="440">
+    <v-card class="pa-6" color="surface">
+      <h2 class="display-2 mb-2">Cancelar esta aula?</h2>
+      <p class="text-medium mb-3">
+        {{ session.data.value?.confirmed_count }} confirmados e {{ session.data.value?.waitlist_count }} na fila recebem um e-mail. Não dá para reservar depois disso.
+      </p>
+      <v-text-field v-model="cancelReason" label="Motivo (aparece no e-mail)" maxlength="255" hide-details />
+      <div class="d-flex justify-end ga-2 mt-4">
+        <v-btn variant="text" @click="cancelOpen = false">Manter aula</v-btn>
+        <v-btn color="error" :loading="cancelSession.isPending.value" @click="confirmCancelSession">Cancelar aula</v-btn>
+      </div>
+    </v-card>
+  </v-dialog>
 
   <v-dialog :model-value="toCancel !== null" max-width="440" @update:model-value="toCancel = null">
     <v-card class="pa-6" color="surface">

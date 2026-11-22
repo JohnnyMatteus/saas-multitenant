@@ -95,10 +95,11 @@ const preview = computed(() =>
 const instructorName = computed(() => instructors.data.value?.find((i) => i.id === values.instructor_id)?.name ?? 'o instrutor')
 
 const durations = [45, 50, 55, 60, 75, 90, 120].map((m) => ({ title: `${m} min`, value: m }))
+const rolling = ref(false)
 const created = ref<{ title: string; count: number } | null>(null)
 
 const submit = handleSubmit(async (form) => {
-  const series = await create.mutateAsync(form)
+  const series = await create.mutateAsync({ ...form, rolling: rolling.value })
   created.value = { title: series.title, count: series.sessions_count ?? 0 }
   open.value = false
 })
@@ -171,6 +172,7 @@ const submitError = computed(() => (create.error.value instanceof ApiError ? cre
           <v-text-field v-model="startsOn" v-bind="startsOnAttrs" type="date" label="A partir de" :error-messages="errors.starts_on" />
           <v-text-field v-model="endsOn" v-bind="endsOnAttrs" type="date" label="Até" :error-messages="errors.ends_on" />
         </div>
+        <v-switch v-model="rolling" color="primary" hide-details density="compact" label="Renovar sozinha: o sistema abre novas semanas à frente" />
         <v-alert color="info" density="compact" class="mb-2">Horários no {{ timezoneLabel(timezone) }}, o fuso do estúdio, para todos os alunos.</v-alert>
       </section>
 

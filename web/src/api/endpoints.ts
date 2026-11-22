@@ -6,11 +6,13 @@ import {
   classSeriesSchema,
   instructorListSchema,
   logoUploadSchema,
+  sessionEditResultSchema,
   meSchema,
   sessionListSchema,
   sessionOneSchema,
   studioSettingsSchema,
   type CreateSeriesInput,
+  type EditSessionInput,
 } from './schemas'
 
 export const api = {
@@ -31,6 +33,10 @@ export const api = {
   book: async (sessionId: string) => (await sendJson('POST', `/sessions/${sessionId}/bookings`, bookingOneSchema)).data,
   cancelBooking: async (bookingId: string) => (await sendJson('POST', `/bookings/${bookingId}/cancel`, cancelResultSchema)).data,
   myBookings: async () => (await getJson('/me/bookings', bookingListSchema)).data,
+  editSession: async (id: string, input: EditSessionInput) =>
+    (await sendJson('PATCH', `/sessions/${id}`, sessionEditResultSchema, { ...input })).data,
+  cancelSession: async (id: string, reason: string | null) =>
+    (await sendJson('POST', `/sessions/${id}/cancel`, sessionOneSchema, reason ? { reason } : {})).data,
   instructors: async () => (await getJson('/instructors', instructorListSchema)).data,
   createSeries: async (input: CreateSeriesInput) =>
     (await sendJson('POST', '/class-series', classSeriesSchema, { ...input })).data,

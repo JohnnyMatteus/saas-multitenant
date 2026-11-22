@@ -44,6 +44,8 @@ export const sessionSchema = z.object({
   confirmed_count: z.number().int(),
   available_spots: z.number().int(),
   waitlist_count: z.number().int(),
+  canceled_at: z.string().nullable().optional(),
+  cancel_reason: z.string().nullable().optional(),
 })
 export type ClassSession = z.infer<typeof sessionSchema>
 
@@ -93,8 +95,33 @@ export const classSeriesSchema = z.object({
     starts_on: z.string(),
     ends_on: z.string(),
     sessions_count: z.number().int().nullable(),
+    rolling: z.boolean().optional(),
   }),
 })
+
+export const sessionEditResultSchema = z.object({
+  data: z.object({
+    series_id: z.string().nullable(),
+    updated: z.array(z.string()),
+    skipped: z.array(z.object({ session_id: z.string(), reasons: z.array(z.string()) })),
+  }),
+})
+export type SessionEditResult = z.infer<typeof sessionEditResultSchema>['data']
+
+export type EditScope = 'occurrence' | 'following' | 'all'
+export interface EditSessionInput {
+  scope: EditScope
+  title?: string
+  instructor_id?: string
+  capacity?: number
+  start_time?: string
+  duration_minutes?: number
+}
+
+export const skipReasonLabels: Record<string, string> = {
+  has_bookings: 'já tem reservas e o horário mudou',
+  capacity_below_confirmed: 'a nova capacidade é menor que os confirmados',
+}
 
 export const logoUploadSchema = z.object({ data: z.object({ logo_path: z.string() }) })
 
@@ -107,6 +134,7 @@ export interface CreateSeriesInput {
   capacity: number
   starts_on: string
   ends_on: string
+  rolling?: boolean
 }
 
 // Reserva confirmada direto tem confirmed_at == queued_at; quem veio da fila
