@@ -1,10 +1,12 @@
 <?php
 
+use App\Modules\Identity\Http\Controllers\InstructorController;
 use App\Modules\Identity\Http\Controllers\MeController;
 use App\Modules\Identity\Http\Controllers\MeWhatsAppLinkController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/me', MeController::class)->name('me');
+Route::get('/instructors', [InstructorController::class, 'index'])->name('instructors.index');
 
 Route::prefix('/me/whatsapp-link')->name('me.whatsapp-link.')->group(function (): void {
     Route::post('/code', [MeWhatsAppLinkController::class, 'issueCode'])->name('code');

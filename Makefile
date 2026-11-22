@@ -4,7 +4,7 @@ CORE    := $(COMPOSE) --profile core
 ALL     := $(COMPOSE) --profile core --profile observability --profile tools
 
 .DEFAULT_GOAL := help
-.PHONY: help up up-all up-portfolio down logs ps seed test test-unit test-integration lint stan check clean network token evidencia
+.PHONY: help web-dev up up-all up-portfolio down logs ps seed test test-unit test-integration lint stan check clean network token evidencia
 
 help: ## Lista os alvos
 	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-18s %s\n", $$1, $$2}'
@@ -26,6 +26,9 @@ logs: ## Acompanha os logs (JSON) da API e do worker
 
 ps: ## Estado dos serviços
 	$(ALL) ps
+
+web-dev: ## Front-end em modo dev (Vite em :5173, proxy /api para :8000)
+	cd web && npm ci && npm run dev
 
 seed: ## Recria os dados fictícios de desenvolvimento
 	$(CORE) run --rm migrate php artisan db:seed --force

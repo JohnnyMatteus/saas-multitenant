@@ -8,6 +8,7 @@ use App\Modules\Identity\Models\User;
 use App\Modules\Scheduling\Domain\BookingStatus;
 use App\Modules\Tenancy\Concerns\BelongsToTenant;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -48,6 +49,27 @@ class Booking extends Model
             'canceled_at' => 'immutable_datetime',
             'reminder_sent_at' => 'immutable_datetime',
         ];
+    }
+
+    /**
+     * Posição 1-based na fila da aula, na mesma ordem da promoção
+     * (queued_at, depois id). Nulo para quem não está na fila.
+     */
+    public function waitlistPosition(): ?int
+    {
+        if ($this->status !== BookingStatus::Waitlisted) {
+            return null;
+        }
+
+        $ahead = self::query()
+            ->where('session_id', $this->session_id)
+            ->where('status', BookingStatus::Waitlisted)
+            ->where(fn (Builder $q) => $q
+                ->where('queued_at', '<', $this->queued_at)
+                ->orWhere(fn (Builder $q) => $q->where('queued_at', $this->queued_at)->where('id', '<', $this->id)))
+            ->count();
+
+        return $ahead + 1;
     }
 
     /**

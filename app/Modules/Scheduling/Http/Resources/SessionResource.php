@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Scheduling\Http\Resources;
 
+use App\Modules\Scheduling\Domain\CancellationWindow;
 use App\Modules\Scheduling\Models\ClassSession;
 use App\Modules\Tenancy\TenantContext;
 use Illuminate\Http\Request;
@@ -22,7 +23,8 @@ final class SessionResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-        $timezone = app(TenantContext::class)->current()->timezone;
+        $tenant = app(TenantContext::class)->current();
+        $timezone = $tenant->timezone;
         $session = $this->resource;
 
         return [
@@ -38,6 +40,9 @@ final class SessionResource extends JsonResource
             'starts_at_local' => $session->starts_at->setTimezone($timezone)->toIso8601String(),
             'ends_at_local' => $session->ends_at->setTimezone($timezone)->toIso8601String(),
             'timezone' => $timezone,
+            'cancellation_deadline' => (new CancellationWindow($tenant->cancellation_window_minutes))
+                ->deadlineFor($session->starts_at)
+                ->toIso8601ZuluString(),
             'capacity' => $session->capacity,
             'confirmed_count' => $session->confirmed_count,
             'available_spots' => max(0, $session->capacity - $session->confirmed_count),

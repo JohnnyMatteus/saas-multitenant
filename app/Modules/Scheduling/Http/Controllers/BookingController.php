@@ -9,6 +9,7 @@ use App\Modules\Scheduling\Application\CancelBooking;
 use App\Modules\Scheduling\Http\Resources\BookingResource;
 use App\Modules\Scheduling\Models\Booking;
 use Illuminate\Container\Attributes\CurrentUser;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Gate;
@@ -18,6 +19,7 @@ final class BookingController
     public function mine(#[CurrentUser] User $user): AnonymousResourceCollection
     {
         $bookings = Booking::query()
+            ->with(['session' => fn (BelongsTo $q) => $q->with('instructor')->withSeatCounts()])
             ->where('member_id', $user->id)
             ->join('class_sessions', 'class_sessions.id', '=', 'bookings.session_id')
             ->orderBy('class_sessions.starts_at')
