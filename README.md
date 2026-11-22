@@ -48,6 +48,8 @@ flowchart LR
 | `Identity` | Validação de JWT, JWKS com cache e rotação, papéis, provisionamento JIT | Shared, Tenancy |
 | `Scheduling` | Recorrência no fuso, reserva com locks, fila, cancelamento, policies | Shared, Tenancy, Identity, Observability |
 | `Branding` | Logo do estúdio no S3, prefixado por tenant | Shared, Tenancy, Identity |
+| `Portability` | Exportação dos dados do estúdio | Shared, Tenancy, Identity, Observability, Scheduling, Billing |
+| `Billing` | Catálogo de pacotes, pedidos e consumo dos eventos do processador de pagamentos | Shared, Tenancy, Identity, Observability |
 | `Observability` | Correlação (`traceparent`, `X-Request-Id`), log de acesso JSON, métricas | Shared |
 
 Fronteiras verificadas por teste (`tests/Unit/Architecture/ModuleBoundariesTest.php`).
@@ -65,6 +67,10 @@ Fronteiras verificadas por teste (`tests/Unit/Architecture/ModuleBoundariesTest.
 | `POST /bookings/{id}/cancel` | dono, admin | Cancela e promove o próximo da fila |
 | `GET /me/bookings` | todos | Minhas reservas |
 | `GET/POST /studio/logo` | todos / admin | Logo do estúdio |
+| `GET/POST /lesson-packages`, `PATCH /lesson-packages/{id}` | todos (só ativos) / admin | Catálogo de pacotes de aulas |
+| `POST /package-orders`, `GET /me/package-orders` | aluno | Pedido de pacote (devolve o `payment_id`) e meus pedidos |
+| `GET /package-orders` | admin | Pedidos do estúdio |
+| `GET /studio/export` | admin | Baixa os dados do estúdio em JSON (streaming, auditado, 5 por hora) |
 
 Erros em `application/problem+json` com `type` estável (`overlapping_booking`, `cancellation_window_closed`, `already_booked`...). Fora da API: `GET /up` (health) e `GET /metrics` (Prometheus).
 
@@ -108,6 +114,8 @@ curl -s -X POST http://localhost:8000/api/v1/class-series \
 Outros alvos: `make logs`, `make seed`, `make down`, `make clean`, `make network` + `make up-portfolio` (rede compartilhada `portfolio-net` com os outros projetos do portfólio). `make help` lista todos.
 
 ## Como testar
+
+Smoke da stack inteira (CI, job `smoke`; localmente com `make up && make smoke`): login real no Keycloak, aula, reserva, 404 entre estúdios, token adulterado, pacotes, export, front pelo nginx e e-mail pela fila.
 
 ```bash
 make test               # sobe só o MySQL e roda toda a suíte
@@ -155,6 +163,8 @@ Respiro tem duas faces em `web/` (Vue 3, Vuetify 3, TanStack Query, login OIDC n
 | [0005](docs/adr/0005-utc-no-banco-e-fuso-do-estudio.md) | UTC no banco, regras no fuso do estúdio, ocorrências materializadas |
 | [0006](docs/adr/0006-infraestrutura-local-com-docker.md) | Compose com perfis, Redis, Mailpit, LocalStack (S3) |
 | [0007](docs/adr/0007-opentelemetry-sdk-e-exportacao-otlp.md) | OpenTelemetry SDK, exportação OTLP/HTTP, no-op sem endpoint |
+| [0008](docs/adr/0008-pacotes-de-aulas-e-eventos-de-pagamento.md) | Pacotes de aulas, pedido com `payment_id` próprio e eventos do processador (créditos pendentes) |
+| [0009](docs/adr/0009-exportacao-de-dados-por-estudio.md) | Exportação por estúdio em streaming, só admin, auditada; import e remoção pendentes |
 
 ## Trade-offs
 
@@ -183,16 +193,23 @@ Clients de serviço no realm `estudios` (Keycloak). Todos têm `serviceAccountsE
 
 O papel `whatsapp_agent` não dá acesso ao domínio por si só. A conta de serviço do WhatsApp não recebe `studio_admin`. Os usuários de serviço (`service-account-<client>`) carregam o atributo `tenant` do estúdio.
 
+## Pacotes de aulas e pagamentos
+
+O estúdio cadastra pacotes; o aluno cria um pedido e recebe o `payment_id` que leva ao processador de pagamentos ([payments-events-go](https://github.com/JohnnyMatteus/payments-events-go)). O consumidor (`php artisan billing:consume-payments`, perfil `payments` do compose, `PAYMENTS_AMQP_URL`) lê `ledger.entry_recorded` e marca o pedido como pago quando valor e moeda conferem, uma vez só por evento ([ADR 0008](docs/adr/0008-pacotes-de-aulas-e-eventos-de-pagamento.md)). Falha do banco não manda nada para a DLQ (o consumidor espera com backoff); o que cai nela volta com `php artisan billing:requeue-dead-letters`. **Não foi exercitado contra o processador nem contra um RabbitMQ real** (testes com dublê). Créditos para reservar ainda não existem: dependem de decisões do autor.
+
 ## Observabilidade: spans
 
 A API exporta spans por OTLP/HTTP quando `OTEL_EXPORTER_OTLP_ENDPOINT` está definido ([ADR 0007](docs/adr/0007-opentelemetry-sdk-e-exportacao-otlp.md)). `make up-all` sobe um Jaeger local (UI em http://localhost:16688) e liga a exportação. Não foi exercitado contra um Jaeger real; os testes verificam os spans gerados e o corpo OTLP/JSON enviado. Para usar o Jaeger do `platform-edge` ele precisa estar na rede `portfolio-net`.
 
 ## Próximos passos
 
-1. Front-end **Vue 3** (OIDC + PKCE com o cliente `studio-web` já no realm).
-3. Export/import por tenant; usuário em vários estúdios com seleção no login.
-4. Pacotes de aulas e pagamentos (integração com o processador de pagamentos do portfólio).
-5. Smoke test da stack completa (`make up`) no CI. Nesta rodada foram validados localmente o `docker compose config`, a importação do realm e um login real no Keycloak validado pela API; o build da imagem e a subida de todos os serviços ficam a cargo do job `build` do CI.
+Só o que de fato falta (o resto do que o design doc prometia já existe; ver ADRs 0007 a 0009):
+
+1. **Créditos dos pacotes** (concessão, consumo na reserva, devolução no cancelamento, validade, estorno): o pedido já vira "pago", mas não dá crédito. Aguarda decisão do autor ([ADR 0008](docs/adr/0008-pacotes-de-aulas-e-eventos-de-pagamento.md)).
+2. **Usuário em vários estúdios com seleção no login**: aguarda decisão do autor sobre o mecanismo no Keycloak (hoje o token tem uma claim `tenant`).
+3. **Importação por estúdio**, remoção de dados e prazo de retenção: aguardam decisão do autor ([ADR 0009](docs/adr/0009-exportacao-de-dados-por-estudio.md)).
+4. **Validar contra serviços reais**: o consumidor de pagamentos (processador e RabbitMQ), a exportação de spans (Jaeger) e o realm novo (`studio-dev-cli`) só foram testados com dublês e `config`; o smoke do CI (`scripts/smoke.sh`) cobre o resto da stack, sem o processador de pagamentos nem o Jaeger.
+5. Propagar o trace da requisição para os jobs da fila, e o Jaeger do `platform-edge` na rede `portfolio-net`.
 
 ## Licença
 

@@ -3,6 +3,8 @@
 services:
   app:
     networks: [studio-net, portfolio-net]
+  billing-consumer:
+    networks: [studio-net, portfolio-net]
 
 networks:
   portfolio-net:

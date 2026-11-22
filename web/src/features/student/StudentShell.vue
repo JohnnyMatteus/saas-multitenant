@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { mdiAccountOutline, mdiCalendarBlankOutline, mdiCalendarCheckOutline } from '@mdi/js'
+import { mdiAccountOutline, mdiCalendarBlankOutline, mdiCalendarCheckOutline, mdiTicketOutline } from '@mdi/js'
 import StudioLogo from '@/components/StudioLogo.vue'
 import { useStudioClock } from '@/composables/useStudioClock'
 import { timezoneLabel } from '@/lib/time'
@@ -8,6 +8,7 @@ const { me, timezone } = useStudioClock()
 const nav = [
   { to: { name: 'agenda' }, icon: mdiCalendarBlankOutline, label: 'Agenda' },
   { to: { name: 'my-classes' }, icon: mdiCalendarCheckOutline, label: 'Minhas aulas' },
+  { to: { name: 'packages' }, icon: mdiTicketOutline, label: 'Pacotes' },
   { to: { name: 'profile' }, icon: mdiAccountOutline, label: 'Perfil' },
 ]
 </script>

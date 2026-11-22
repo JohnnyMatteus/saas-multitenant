@@ -22,7 +22,7 @@ O produto é um SaaS: vários estúdios na mesma instalação, cada um vendo só
 
 **Não-objetivos (por enquanto)**
 
-- Pagamentos, planos e pacotes de aulas.
+- Créditos de aula e cobrança recorrente (o catálogo, o pedido e os eventos do processador existem, [ADR 0008](adr/0008-pacotes-de-aulas-e-eventos-de-pagamento.md); consumo, devolução, validade e estorno de créditos aguardam definição).
 - Front-end completo (o Vue fica para a fase seguinte; o realm já tem o cliente `studio-web`).
 - Banco dedicado por estúdio, multi-região.
 - Preferências de notificação do aluno (e-mails de promoção, confirmação, lembrete e cancelamento já existem).
@@ -244,6 +244,7 @@ Admin envia dias da semana, horário local, duração, capacidade e período. `W
 | Concorrência | Lock pessimista | Assentos com UNIQUE, contador atômico, otimista, Redis, SERIALIZABLE | 0004 |
 | Tempo | UTC + fuso do estúdio + materialização | Hora local, RRULE em leitura | 0005 |
 | Infra local | Compose com perfis, LocalStack, Mailpit, Redis | MinIO, SES local, fila no banco | 0006 |
+| Pacotes | Pedido com `payment_id` próprio + eventos do processador | Consultar o processador, créditos já | 0008 |
 | Traces | OTel SDK + OTLP/HTTP | Extensão com auto-instrumentação, gRPC | 0007 |
 
 ## 10. Plano de evolução
@@ -254,7 +255,7 @@ Admin envia dias da semana, horário local, duração, capacidade e período. `W
 4. ~~E-mails de confirmação e lembrete~~ (entregue); preferências do aluno ficam para depois.
 5. ~~OpenTelemetry SDK exportando spans~~ (entregue; ADR 0007).
 6. ~~Teste de arquitetura de `BelongsToTenant`~~ (entregue: `TenantModelsTest`).
-7. **Export/import por tenant** (restauração isolada, portabilidade).
+7. **Export por tenant** entregue ([ADR 0009](adr/0009-exportacao-de-dados-por-estudio.md)); **import** (restauração isolada) pendente de decisão do autor.
 8. **Usuário em vários estúdios** com seleção de estúdio no login.
-9. **Planos e pacotes de aulas** (créditos), integrando com o processador de pagamentos do portfólio.
+9. **Planos e pacotes de aulas**: catálogo, pedido e consumo dos eventos do processador entregues (ADR 0008); **créditos** (concessão, consumo, devolução, validade, estorno) pendentes de decisão.
 10. **Rate limit por tenant** no gateway e quotas por plano.

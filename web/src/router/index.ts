@@ -30,6 +30,12 @@ const router = createRouter({
         { path: 'semana', name: 'week', component: () => import('@/features/studio/WeekPage.vue'), meta: { title: 'Semana' } },
         { path: 'aulas/:id', name: 'roster', component: () => import('@/features/studio/RosterPage.vue'), meta: { title: 'Lista da aula' } },
         {
+          path: 'pacotes',
+          name: 'packages-admin',
+          component: () => import('@/features/studio/PackagesAdminPage.vue'),
+          meta: { title: 'Pacotes', roles: ['studio_admin'] },
+        },
+        {
           path: 'configuracoes',
           name: 'settings',
           component: () => import('@/features/studio/SettingsPage.vue'),
@@ -45,6 +51,7 @@ const router = createRouter({
         { path: '', redirect: { name: 'agenda' } },
         { path: 'agenda', name: 'agenda', component: () => import('@/features/student/AgendaPage.vue'), meta: { title: 'Agenda' } },
         { path: 'minhas-aulas', name: 'my-classes', component: () => import('@/features/student/MyBookingsPage.vue'), meta: { title: 'Minhas aulas' } },
+        { path: 'pacotes', name: 'packages', component: () => import('@/features/student/PackagesPage.vue'), meta: { title: 'Pacotes' } },
         { path: 'perfil', name: 'profile', component: () => import('@/features/student/ProfilePage.vue'), meta: { title: 'Perfil' } },
       ],
     },

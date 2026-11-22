@@ -6,6 +6,7 @@ namespace App\Modules\Scheduling\Http\Requests;
 
 use App\Modules\Scheduling\Application\CreateClassSeriesData;
 use App\Modules\Scheduling\Domain\WeeklyRecurrence;
+use App\Modules\Scheduling\Models\ClassSeries;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
@@ -14,6 +15,12 @@ use Illuminate\Foundation\Http\FormRequest;
  */
 final class CreateClassSeriesRequest extends FormRequest
 {
+    /** Antes da validação: quem não pode criar recebe 403, não o formato que a rota espera. */
+    public function authorize(): bool
+    {
+        return $this->user()?->can('create', ClassSeries::class) ?? false;
+    }
+
     /**
      * @return array<string, mixed>
      */

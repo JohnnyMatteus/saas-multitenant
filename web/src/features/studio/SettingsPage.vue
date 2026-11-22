@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { mdiUploadOutline } from '@mdi/js'
+import { mdiDownloadOutline, mdiUploadOutline } from '@mdi/js'
 import { computed, ref, watch } from 'vue'
 import { ApiError } from '@/api/client'
+import { api } from '@/api/endpoints'
 import { useStudio, useUpdateStudio, useUploadLogo } from '@/api/queries'
 import StateBlock from '@/components/StateBlock.vue'
 import StudioLogo from '@/components/StudioLogo.vue'
 import MatRow from '@/components/signature/MatRow.vue'
+import { filenameFrom, saveBlob } from '@/lib/download'
 import { timezoneLabel, windowLabel } from '@/lib/time'
 
 const MAX_LOGO_KB = 512
@@ -61,6 +63,20 @@ async function onFile(event: Event) {
     if (fileInput.value) fileInput.value.value = ''
   }
 }
+const exporting = ref(false)
+const exportError = ref<string | null>(null)
+async function exportData() {
+  exporting.value = true
+  exportError.value = null
+  try {
+    const { blob, disposition } = await api.exportStudio()
+    saveBlob(blob, filenameFrom(disposition, 'estudio.json'))
+  } catch (error) {
+    exportError.value = error instanceof ApiError ? error.message : 'Não foi possível exportar os dados.'
+  } finally {
+    exporting.value = false
+  }
+}
 const updateError = computed(() => (update.error.value instanceof ApiError ? update.error.value.message : null))
 </script>
 
@@ -109,6 +125,15 @@ const updateError = computed(() => (update.error.value instanceof ApiError ? upd
           <v-btn color="primary" type="submit" :disabled="!dirty || !!nameError" :loading="update.isPending.value">Salvar ajustes</v-btn>
         </div>
       </form>
+    </section>
+
+    <section class="panel" aria-labelledby="export-title">
+      <h2 id="export-title" class="section-title mb-1">Exportar dados</h2>
+      <p class="text-medium mb-4">
+        Baixa um arquivo JSON com a grade, os alunos (nome e e-mail), as reservas e os pacotes do estúdio. Guarde com o mesmo cuidado dos dados dos alunos. Limite de 5 por hora.
+      </p>
+      <v-btn variant="tonal" color="primary" :prepend-icon="mdiDownloadOutline" :loading="exporting" @click="exportData">Exportar dados do estúdio</v-btn>
+      <v-alert v-if="exportError" color="error" density="compact" class="mt-3">{{ exportError }}</v-alert>
     </section>
   </div>
 

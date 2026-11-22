@@ -151,3 +151,38 @@ export type WhatsAppLinkStatus = z.infer<typeof whatsAppLinkStatusSchema>['data'
 
 export const whatsAppCodeSchema = z.object({ data: z.object({ code: z.string(), expires_at: z.string() }) })
 export type WhatsAppCode = z.infer<typeof whatsAppCodeSchema>['data']
+
+export const lessonPackageSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  lesson_count: z.number().int(),
+  price_cents: z.number().int(),
+  currency: z.string(),
+  active: z.boolean(),
+})
+export type LessonPackage = z.infer<typeof lessonPackageSchema>
+export const lessonPackageListSchema = z.object({ data: z.array(lessonPackageSchema) })
+export const lessonPackageOneSchema = z.object({ data: lessonPackageSchema })
+
+export const orderStatusSchema = z.enum(['pending', 'paid'])
+export const packageOrderSchema = z.object({
+  id: z.string(),
+  payment_id: z.string(),
+  package: z.object({ id: z.string(), name: z.string() }),
+  member: z.object({ id: z.string(), name: z.string() }),
+  lesson_count: z.number().int(),
+  amount_cents: z.number().int(),
+  currency: z.string(),
+  status: orderStatusSchema,
+  paid_at: z.string().nullable(),
+  created_at: z.string(),
+})
+export type PackageOrder = z.infer<typeof packageOrderSchema>
+export const packageOrderListSchema = z.object({ data: z.array(packageOrderSchema) })
+export const packageOrderOneSchema = z.object({ data: packageOrderSchema })
+
+export interface CreatePackageInput {
+  name: string
+  lesson_count: number
+  price_cents: number
+}

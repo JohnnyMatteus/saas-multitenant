@@ -122,3 +122,29 @@ jobs:
           tags: saas-multitenant-app:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  smoke:
+    name: Smoke da stack completa (compose)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      # Sobe de verdade: MySQL, Redis, Keycloak (importa o realm), LocalStack, API, worker e front.
+      - name: Sobe a stack (perfil core)
+        run: docker compose --profile core up -d --build --wait --wait-timeout 900
+
+      # Login real no Keycloak, reserva, isolamento entre estúdios, pacotes, export, front e fila de e-mail.
+      # O script conta as verificações e falha se rodarem menos que o mínimo (passo pulado não fica verde).
+      - name: Smoke
+        run: bash scripts/smoke.sh
+
+      - name: Estado e logs da stack (só em falha)
+        if: failure()
+        run: |
+          docker compose --profile core ps -a
+          docker compose --profile core logs --no-color --tail=150 app worker web keycloak migrate
+
+      - name: Derruba a stack
+        if: always()
+        run: docker compose --profile core down -v --remove-orphans

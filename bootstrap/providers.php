@@ -1,8 +1,10 @@
 <?php
 
+use App\Modules\Billing\BillingServiceProvider;
 use App\Modules\Branding\BrandingServiceProvider;
 use App\Modules\Identity\IdentityServiceProvider;
 use App\Modules\Observability\ObservabilityServiceProvider;
+use App\Modules\Portability\PortabilityServiceProvider;
 use App\Modules\Scheduling\SchedulingServiceProvider;
 use App\Modules\Tenancy\TenancyServiceProvider;
 use App\Providers\AppServiceProvider;
@@ -13,5 +15,7 @@ return [
     IdentityServiceProvider::class,
     SchedulingServiceProvider::class,
     BrandingServiceProvider::class,
+    BillingServiceProvider::class,
+    PortabilityServiceProvider::class,
     ObservabilityServiceProvider::class,
 ];

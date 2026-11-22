@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { mdiCalendarTodayOutline, mdiCalendarWeekOutline, mdiCogOutline, mdiLogout, mdiWeatherNight, mdiWhiteBalanceSunny } from '@mdi/js'
+import { mdiLogout, mdiWeatherNight, mdiWhiteBalanceSunny } from '@mdi/js'
 import { computed } from 'vue'
 import { useDisplay } from 'vuetify'
 import { logout } from '@/auth/oidc'
@@ -7,17 +7,14 @@ import StudioLogo from '@/components/StudioLogo.vue'
 import { useStudioClock } from '@/composables/useStudioClock'
 import { useUiStore } from '@/stores/ui'
 import CreateSeriesSheet from './CreateSeriesSheet.vue'
+import { studioNav } from './nav'
 
 const ui = useUiStore()
 const { mdAndUp } = useDisplay()
 const { me } = useStudioClock()
 
 const isAdmin = computed(() => me.data.value?.role === 'studio_admin')
-const nav = computed(() => [
-  { to: { name: 'today' }, icon: mdiCalendarTodayOutline, label: 'Hoje' },
-  { to: { name: 'week' }, icon: mdiCalendarWeekOutline, label: 'Semana' },
-  ...(isAdmin.value ? [{ to: { name: 'settings' }, icon: mdiCogOutline, label: 'Ajustes' }] : []),
-])
+const nav = computed(() => studioNav(me.data.value?.role))
 const roleLabel = computed(() => (isAdmin.value ? 'admin do estúdio' : 'instrutor'))
 </script>
 

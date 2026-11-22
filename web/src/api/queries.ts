@@ -13,6 +13,9 @@ export const keys = {
   myBookings: ['my-bookings'] as const,
   instructors: ['instructors'] as const,
   whatsAppLink: ['whatsapp-link'] as const,
+  packages: ['lesson-packages'] as const,
+  myOrders: ['package-orders', 'mine'] as const,
+  orders: ['package-orders', 'studio'] as const,
 }
 
 export function useMe() {
@@ -159,4 +162,35 @@ export function useRevokeWhatsAppLink() {
     mutationFn: api.revokeWhatsAppLink,
     onSuccess: () => client.invalidateQueries({ queryKey: keys.whatsAppLink }),
   })
+}
+
+export function useLessonPackages() {
+  return useQuery({ queryKey: keys.packages, queryFn: api.lessonPackages })
+}
+
+export function useCreateLessonPackage() {
+  const client = useQueryClient()
+  return useMutation({ mutationFn: api.createLessonPackage, onSuccess: () => client.invalidateQueries({ queryKey: keys.packages }) })
+}
+
+export function useUpdateLessonPackage() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: { name?: string; price_cents?: number; active?: boolean } }) => api.updateLessonPackage(id, input),
+    onSuccess: () => client.invalidateQueries({ queryKey: keys.packages }),
+  })
+}
+
+export function useOrderPackage() {
+  const client = useQueryClient()
+  return useMutation({ mutationFn: api.orderPackage, onSuccess: () => client.invalidateQueries({ queryKey: ['package-orders'] }) })
+}
+
+// Pedido muda para "pago" quando o processador confirma, sem ação do aluno: atualiza sozinho.
+export function useMyPackageOrders() {
+  return useQuery({ queryKey: keys.myOrders, queryFn: api.myPackageOrders, refetchInterval: 15_000 })
+}
+
+export function useStudioPackageOrders() {
+  return useQuery({ queryKey: keys.orders, queryFn: api.packageOrders, refetchInterval: 15_000 })
 }
