@@ -4,7 +4,7 @@ import { ApiError } from '@/api/client'
 import { useCreateLessonPackage, useLessonPackages, useStudioPackageOrders, useUpdateLessonPackage } from '@/api/queries'
 import StateBlock from '@/components/StateBlock.vue'
 import { useStudioClock } from '@/composables/useStudioClock'
-import { formatBRL, parseReaisToCents } from '@/lib/money'
+import { formatBRL, parseReais } from '@/lib/money'
 import { formatInStudio } from '@/lib/time'
 
 const { timezone } = useStudioClock()
@@ -18,7 +18,9 @@ const lessons = ref('8')
 const price = ref('')
 const submitted = ref(false)
 
-const priceCents = computed(() => parseReaisToCents(price.value))
+const parsedPrice = computed(() => parseReais(price.value))
+const priceCents = computed(() => ('cents' in parsedPrice.value ? parsedPrice.value.cents : null))
+const priceError = computed(() => ('error' in parsedPrice.value ? parsedPrice.value.error : null))
 const lessonCount = computed(() => {
   const n = Number(lessons.value)
   return Number.isInteger(n) && n >= 1 && n <= 500 ? n : null
@@ -31,10 +33,14 @@ const formError = computed(() =>
 async function add() {
   submitted.value = true
   if (nameError.value || priceCents.value === null || lessonCount.value === null) return
-  await create.mutateAsync({ name: name.value.trim(), lesson_count: lessonCount.value, price_cents: priceCents.value })
-  name.value = ''
-  price.value = ''
-  submitted.value = false
+  try {
+    await create.mutateAsync({ name: name.value.trim(), lesson_count: lessonCount.value, price_cents: priceCents.value })
+    name.value = ''
+    price.value = ''
+    submitted.value = false
+  } catch {
+    // O erro da API aparece em formError (create.error); aqui só evita a rejeição sem tratamento.
+  }
 }
 </script>
 
@@ -49,7 +55,15 @@ async function add() {
     <form novalidate class="form" @submit.prevent="add">
       <v-text-field v-model="name" label="Nome" :error-messages="submitted ? (nameError ?? undefined) : undefined" />
       <v-text-field v-model="lessons" label="Aulas" inputmode="numeric" :error-messages="submitted && lessonCount === null ? 'Entre 1 e 500' : undefined" />
-      <v-text-field v-model="price" label="Preço (R$)" inputmode="decimal" :error-messages="submitted && priceCents === null ? 'Informe um valor, como 320,00' : undefined" />
+      <v-text-field
+        v-model="price"
+        label="Preço (R$)"
+        inputmode="decimal"
+        :error-messages="(submitted || price.trim() !== '') && priceError ? priceError : undefined"
+        :hint="priceCents !== null ? `Será cobrado ${formatBRL(priceCents)}` : undefined"
+        persistent-hint
+        data-testid="price-field"
+      />
       <v-btn color="primary" type="submit" :loading="create.isPending.value">Criar pacote</v-btn>
     </form>
     <v-alert v-if="formError" color="error" density="compact" class="mt-3">{{ formError }}</v-alert>

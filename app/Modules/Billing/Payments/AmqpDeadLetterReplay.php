@@ -6,6 +6,7 @@ namespace App\Modules\Billing\Payments;
 
 use PhpAmqpLib\Channel\AMQPChannel;
 use PhpAmqpLib\Message\AMQPMessage;
+use RuntimeException;
 
 /**
  * Devolve as mensagens da DLQ para a fila do consumidor, depois de corrigida a causa (contrato ou defeito).
@@ -15,6 +16,8 @@ use PhpAmqpLib\Message\AMQPMessage;
  */
 final readonly class AmqpDeadLetterReplay
 {
+    private const int CONFIRM_TIMEOUT_SECONDS = 10;
+
     /**
      * @param  array{amqp_url: string, exchange: string, binding_key: string, queue: string, delivery_limit: int, prefetch: int}  $config
      */
@@ -35,20 +38,49 @@ final readonly class AmqpDeadLetterReplay
         }
     }
 
+    /**
+     * Só tira a mensagem da DLQ depois de o broker confirmá-la e de ela ter sido roteada: `basic.nack` e
+     * `basic.return` (fila inexistente, com `mandatory`) NÃO fazem `wait_for_pending_acks` lançar, então
+     * são capturados por handler e abortam antes do ack. A mensagem volta para a DLQ.
+     *
+     * @throws RuntimeException se o broker recusou ou não roteou a mensagem
+     */
     public function replayFrom(AMQPChannel $channel, int $limit): int
     {
         $dlq = AmqpPaymentEventConsumer::deadLetterQueue($this->config);
-        $channel->confirm_select();
-        $moved = 0;
+        $verdict = new BrokerRefusal;
 
+        $channel->confirm_select();
+        $channel->set_nack_handler(function () use ($verdict): void {
+            $verdict->record('o broker recusou a mensagem (basic.nack)');
+        });
+        $channel->set_return_listener(function (int $code, string $text) use ($verdict): void {
+            $verdict->record("a mensagem não foi roteada para a fila ({$code} {$text})");
+        });
+
+        $moved = 0;
         while ($moved < $limit) {
             $message = $channel->basic_get($dlq, false);
             if (! $message instanceof AMQPMessage) {
                 break;
             }
 
-            $channel->basic_publish(new AMQPMessage($message->getBody(), ['content_type' => 'application/json', 'delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT]), '', $this->config['queue']);
-            $channel->wait_for_pending_acks();
+            $verdict->clear();
+            $channel->basic_publish(
+                new AMQPMessage($message->getBody(), ['content_type' => 'application/json', 'delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT]),
+                '',
+                $this->config['queue'],
+                true,
+            );
+            $channel->wait_for_pending_acks_returns(self::CONFIRM_TIMEOUT_SECONDS);
+
+            $refusal = $verdict->reason();
+            if ($refusal !== null) {
+                $message->nack(true);
+
+                throw new RuntimeException("Reprocessamento interrompido após {$moved} mensagem(ns): {$refusal}. A mensagem continua na DLQ.");
+            }
+
             $message->ack();
             $moved++;
         }

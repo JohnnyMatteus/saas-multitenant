@@ -7,6 +7,7 @@ namespace App\Modules\Billing\Console;
 use App\Modules\Billing\Payments\AmqpDeadLetterReplay;
 use Illuminate\Console\Command;
 use Illuminate\Contracts\Config\Repository as Config;
+use RuntimeException;
 
 final class RequeueDeadLetters extends Command
 {
@@ -24,7 +25,13 @@ final class RequeueDeadLetters extends Command
             return self::FAILURE;
         }
 
-        $moved = (new AmqpDeadLetterReplay([...$settings, 'amqp_url' => $settings['amqp_url']]))->replay(max(1, (int) $this->option('limit')));
+        try {
+            $moved = (new AmqpDeadLetterReplay([...$settings, 'amqp_url' => $settings['amqp_url']]))->replay(max(1, (int) $this->option('limit')));
+        } catch (RuntimeException $e) {
+            $this->error($e->getMessage());
+
+            return self::FAILURE;
+        }
         $this->info("{$moved} mensagem(ns) devolvida(s) à fila.");
 
         return self::SUCCESS;
