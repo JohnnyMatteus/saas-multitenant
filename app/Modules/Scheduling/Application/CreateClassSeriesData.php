@@ -21,5 +21,6 @@ final readonly class CreateClassSeriesData
         public int $capacity,
         public string $startsOn,
         public string $endsOn,
+        public bool $rolling = false,
     ) {}
 }

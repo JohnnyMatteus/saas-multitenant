@@ -6,18 +6,14 @@ namespace App\Modules\Scheduling\Application;
 
 use App\Modules\Identity\Models\Role;
 use App\Modules\Identity\Models\User;
-use App\Modules\Observability\Metrics;
 use App\Modules\Scheduling\Domain\BookingStatus;
 use App\Modules\Scheduling\Domain\CancellationWindow;
 use App\Modules\Scheduling\Domain\Exceptions\BookingAlreadyCanceled;
 use App\Modules\Scheduling\Domain\Exceptions\CancellationWindowClosed;
 use App\Modules\Scheduling\Domain\Exceptions\SessionAlreadyStarted;
-use App\Modules\Scheduling\Events\WaitlistPromoted;
 use App\Modules\Scheduling\Models\Booking;
 use App\Modules\Scheduling\Models\ClassSession;
 use App\Modules\Tenancy\TenantContext;
-use Carbon\CarbonImmutable;
-use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Facades\Date;
 use Psr\Log\LoggerInterface;
@@ -37,8 +33,7 @@ final readonly class CancelBooking
     public function __construct(
         private ConnectionInterface $db,
         private TenantContext $tenantContext,
-        private Dispatcher $events,
-        private Metrics $metrics,
+        private WaitlistPromoter $promoter,
         private LoggerInterface $logger,
     ) {}
 
@@ -84,31 +79,8 @@ final readonly class CancelBooking
 
         $booking->fill(['status' => BookingStatus::Canceled, 'canceled_at' => $now])->save();
 
-        $promoted = $freesSeat ? $this->promoteNextInLine($session, $now) : null;
+        $promoted = $freesSeat ? ($this->promoter->fillFreeSeats($session, $now)[0] ?? null) : null;
 
         return new CancellationResult($booking, $promoted);
-    }
-
-    private function promoteNextInLine(ClassSession $session, CarbonImmutable $now): ?Booking
-    {
-        $next = Booking::query()
-            ->where('session_id', $session->id)
-            ->where('status', BookingStatus::Waitlisted)
-            ->orderBy('queued_at')
-            ->orderBy('id')
-            ->lockForUpdate()
-            ->first();
-
-        if ($next === null) {
-            return null;
-        }
-
-        $next->fill(['status' => BookingStatus::Confirmed, 'confirmed_at' => $now])->save();
-
-        $this->metrics->increment('waitlist_promotions_total', 'Promoções automáticas da lista de espera.');
-        // Despachado só após o commit: ninguém é notificado de uma promoção desfeita.
-        $this->events->dispatch(new WaitlistPromoted($session->tenant_id, $next->id, $session->id, $next->member_id));
-
-        return $next;
     }
 }

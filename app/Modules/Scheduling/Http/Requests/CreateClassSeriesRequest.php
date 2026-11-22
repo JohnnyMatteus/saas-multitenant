@@ -32,6 +32,7 @@ final class CreateClassSeriesRequest extends FormRequest
             'capacity' => ['required', 'integer', 'between:1,200'],
             'starts_on' => ['required', 'date_format:Y-m-d'],
             'ends_on' => ['required', 'date_format:Y-m-d', 'after_or_equal:starts_on'],
+            'rolling' => ['sometimes', 'boolean'],
         ];
     }
 
@@ -46,6 +47,7 @@ final class CreateClassSeriesRequest extends FormRequest
             capacity: $this->integer('capacity'),
             startsOn: $this->string('starts_on')->toString(),
             endsOn: $this->string('ends_on')->toString(),
+            rolling: $this->boolean('rolling'),
         );
     }
 }

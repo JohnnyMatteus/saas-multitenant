@@ -26,6 +26,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $capacity
  * @property CarbonImmutable $starts_on
  * @property CarbonImmutable $ends_on
+ * @property bool $rolling
  */
 class ClassSeries extends Model
 {
@@ -36,7 +37,7 @@ class ClassSeries extends Model
 
     protected $fillable = [
         'tenant_id', 'instructor_id', 'title', 'weekdays', 'start_time',
-        'duration_minutes', 'capacity', 'starts_on', 'ends_on',
+        'duration_minutes', 'capacity', 'starts_on', 'ends_on', 'rolling',
     ];
 
     protected function casts(): array
@@ -45,6 +46,7 @@ class ClassSeries extends Model
             'weekdays' => 'array',
             'duration_minutes' => 'integer',
             'capacity' => 'integer',
+            'rolling' => 'boolean',
             'starts_on' => 'immutable_date',
             'ends_on' => 'immutable_date',
         ];

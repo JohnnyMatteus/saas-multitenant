@@ -59,6 +59,7 @@ final readonly class CreateClassSeries
                 'capacity' => $data->capacity,
                 'starts_on' => $recurrence->startsOn,
                 'ends_on' => $recurrence->endsOn,
+                'rolling' => $data->rolling,
             ]);
 
             foreach ($recurrence->occurrences() as $occurrence) {

@@ -22,4 +22,12 @@ final class ClassSessionPolicy
         return $user->hasRole(Role::StudioAdmin)
             || ($user->hasRole(Role::Instructor) && $session->instructor_id === $user->id);
     }
+
+    /**
+     * Editar ou cancelar aula: só o admin do estúdio.
+     */
+    public function manage(User $user, ClassSession $session): bool
+    {
+        return $user->tenant_id === $session->tenant_id && $user->hasRole(Role::StudioAdmin);
+    }
 }

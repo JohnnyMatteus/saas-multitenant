@@ -28,6 +28,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property CarbonImmutable $starts_at
  * @property CarbonImmutable $ends_at
  * @property int $capacity
+ * @property CarbonImmutable|null $canceled_at
+ * @property string|null $cancel_reason
  * @property-read int $confirmed_count
  * @property-read int $waitlist_count
  * @property-read User $instructor
@@ -41,7 +43,7 @@ class ClassSession extends Model
 
     use HasUlids;
 
-    protected $fillable = ['tenant_id', 'series_id', 'instructor_id', 'title', 'starts_at', 'ends_at', 'capacity'];
+    protected $fillable = ['tenant_id', 'series_id', 'instructor_id', 'title', 'starts_at', 'ends_at', 'capacity', 'canceled_at', 'cancel_reason'];
 
     protected function casts(): array
     {
@@ -49,9 +51,15 @@ class ClassSession extends Model
             'starts_at' => 'immutable_datetime',
             'ends_at' => 'immutable_datetime',
             'capacity' => 'integer',
+            'canceled_at' => 'immutable_datetime',
             'confirmed_count' => 'integer',
             'waitlist_count' => 'integer',
         ];
+    }
+
+    public function isCanceled(): bool
+    {
+        return $this->canceled_at !== null;
     }
 
     public function hasStartedAt(CarbonImmutable $now): bool
