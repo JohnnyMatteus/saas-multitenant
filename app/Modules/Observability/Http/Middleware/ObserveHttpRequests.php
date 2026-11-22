@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Observability\Http\Middleware;
 
 use App\Modules\Observability\Metrics;
+use App\Modules\Observability\Tracing\SpanFailure;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Context;
@@ -59,8 +60,7 @@ final readonly class ObserveHttpRequests
             /** @var Response $response */
             $response = $next($request);
         } catch (Throwable $e) {
-            $span->recordException($e);
-            $span->setStatus(StatusCode::STATUS_ERROR);
+            SpanFailure::record($span, $e);
             $span->end();
 
             throw $e;

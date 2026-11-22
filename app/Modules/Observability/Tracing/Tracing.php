@@ -5,13 +5,12 @@ declare(strict_types=1);
 namespace App\Modules\Observability\Tracing;
 
 use OpenTelemetry\API\Trace\SpanKind;
-use OpenTelemetry\API\Trace\StatusCode;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
 use Throwable;
 
 /**
- * Abre um span interno ao redor de um caso de uso. A exceção passa intacta; o span a registra.
- * Atributos sem dado pessoal: ids de recurso, nunca e-mail ou nome.
+ * Abre um span interno ao redor de um caso de uso. A exceção passa intacta; o span registra só o tipo
+ * (ver SpanFailure). Atributos sem dado pessoal: ids de recurso, nunca e-mail ou nome.
  */
 final readonly class Tracing
 {
@@ -37,8 +36,7 @@ final readonly class Tracing
         try {
             return $callback();
         } catch (Throwable $e) {
-            $span->recordException($e);
-            $span->setStatus(StatusCode::STATUS_ERROR, $e::class);
+            SpanFailure::record($span, $e);
 
             throw $e;
         } finally {

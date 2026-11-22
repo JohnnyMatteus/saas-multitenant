@@ -30,12 +30,21 @@ final class TracerProviderFactory
     /**
      * @param  array{endpoint?: mixed, service_name?: mixed, sample_ratio?: mixed, timeout_seconds?: mixed}  $config
      */
-    public static function make(array $config, ?ClientInterface $client = null): TracerProviderInterface
+    public static function make(array $config, ?ClientInterface $client = null, ?ExportBackoff $backoff = null): TracerProviderInterface
+    {
+        $endpoint = is_string($config['endpoint'] ?? null) ? trim($config['endpoint']) : '';
+
+        return $endpoint === '' ? new NoopTracerProvider : self::sdk($config, $client, $backoff);
+    }
+
+    /**
+     * Provider do SDK com exportador OTLP; o endpoint é obrigatório.
+     *
+     * @param  array{endpoint?: mixed, service_name?: mixed, sample_ratio?: mixed, timeout_seconds?: mixed}  $config
+     */
+    public static function sdk(array $config, ?ClientInterface $client = null, ?ExportBackoff $backoff = null): TracerProvider
     {
         $endpoint = is_string($config['endpoint'] ?? null) ? rtrim(trim($config['endpoint']), '/') : '';
-        if ($endpoint === '') {
-            return new NoopTracerProvider;
-        }
 
         $timeout = (float) ($config['timeout_seconds'] ?? 2);
         $factory = new HttpFactory;
@@ -50,8 +59,10 @@ final class TracerProviderFactory
             ServiceAttributes::SERVICE_NAME => (string) ($config['service_name'] ?? 'saas-multitenant-api'),
         ]));
 
+        $exporter = new SpanExporter($transport);
+
         return new TracerProvider(
-            new BatchSpanProcessor(new SpanExporter($transport), ClockFactory::getDefault()),
+            new BatchSpanProcessor($backoff === null ? $exporter : new BackoffSpanExporter($exporter, $backoff), ClockFactory::getDefault()),
             new ParentBased(new TraceIdRatioBasedSampler((float) ($config['sample_ratio'] ?? 1.0))),
             $resource,
         );
