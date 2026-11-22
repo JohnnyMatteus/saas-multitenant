@@ -136,6 +136,14 @@ make evidencia   # sobe a stack, zera os dados de dev e roda e2e/evidencia
 
 O vídeo fica em `e2e/evidencia/test-results/*/video.webm`.
 
+## Interface
+
+Respiro tem duas faces em `web/` (Vue 3, Vuetify 3, TanStack Query, login OIDC no Keycloak): o painel do estúdio (régua do dia, grade com a fileira de tapetes, aula recorrente, lista de presença e de espera, edição e cancelamento de aula, configurações com logo) e o app do aluno, mobile-first (agenda no fuso do estúdio, reservar, fila com posição, minhas aulas, "para você").
+
+- Com a stack no ar (`make up`), o painel abre em http://localhost:5173 (serviço `web`, nginx com proxy `/api`).
+- Desenvolvimento: `make web-dev` (Vite com proxy para a API em :8000).
+- Screenshots (a gerar): `node e2e/evidencia/screenshots.mjs` grava em `docs/screenshots/`.
+
 ## Decisões principais
 
 | ADR | Decisão |
