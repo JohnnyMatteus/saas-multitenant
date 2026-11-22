@@ -60,6 +60,12 @@ export function sendJson<S extends z.ZodTypeAny>(
   return call(async () => schema.parse(await http(path, { method, body })))
 }
 
+export function sendDelete(path: string): Promise<void> {
+  return call(async () => {
+    await http(path, { method: 'DELETE' })
+  })
+}
+
 export function getBlob(path: string): Promise<Blob | null> {
   return call(async () => {
     try {

@@ -143,3 +143,11 @@ export function wasPromoted(booking: Booking): boolean {
   if (booking.status !== 'confirmed' || !booking.confirmed_at) return false
   return new Date(booking.confirmed_at).getTime() - new Date(booking.queued_at).getTime() > 2000
 }
+
+export const whatsAppLinkStatusSchema = z.object({
+  data: z.object({ linked: z.boolean(), linked_at: z.string().nullable(), code_pending: z.boolean() }),
+})
+export type WhatsAppLinkStatus = z.infer<typeof whatsAppLinkStatusSchema>['data']
+
+export const whatsAppCodeSchema = z.object({ data: z.object({ code: z.string(), expires_at: z.string() }) })
+export type WhatsAppCode = z.infer<typeof whatsAppCodeSchema>['data']

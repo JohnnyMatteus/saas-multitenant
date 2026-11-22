@@ -1,4 +1,4 @@
-import { getBlob, getJson, sendJson } from './client'
+import { getBlob, getJson, sendDelete, sendJson } from './client'
 import {
   bookingListSchema,
   bookingOneSchema,
@@ -11,6 +11,8 @@ import {
   sessionListSchema,
   sessionOneSchema,
   studioSettingsSchema,
+  whatsAppCodeSchema,
+  whatsAppLinkStatusSchema,
   type CreateSeriesInput,
   type EditSessionInput,
 } from './schemas'
@@ -38,6 +40,9 @@ export const api = {
   cancelSession: async (id: string, reason: string | null) =>
     (await sendJson('POST', `/sessions/${id}/cancel`, sessionOneSchema, reason ? { reason } : {})).data,
   instructors: async () => (await getJson('/instructors', instructorListSchema)).data,
+  whatsAppLink: async () => (await getJson('/me/whatsapp-link', whatsAppLinkStatusSchema)).data,
+  issueWhatsAppCode: async () => (await sendJson('POST', '/me/whatsapp-link/code', whatsAppCodeSchema)).data,
+  revokeWhatsAppLink: () => sendDelete('/me/whatsapp-link'),
   createSeries: async (input: CreateSeriesInput) =>
     (await sendJson('POST', '/class-series', classSeriesSchema, { ...input })).data,
 }

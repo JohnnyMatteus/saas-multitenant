@@ -12,6 +12,7 @@ export const keys = {
   roster: (id: string) => ['roster', id] as const,
   myBookings: ['my-bookings'] as const,
   instructors: ['instructors'] as const,
+  whatsAppLink: ['whatsapp-link'] as const,
 }
 
 export function useMe() {
@@ -138,4 +139,24 @@ export function useLogoUrl() {
     if (url.value) URL.revokeObjectURL(url.value)
   })
   return url
+}
+
+export function useWhatsAppLink() {
+  return useQuery({ queryKey: keys.whatsAppLink, queryFn: api.whatsAppLink })
+}
+
+export function useIssueWhatsAppCode() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: api.issueWhatsAppCode,
+    onSuccess: () => client.invalidateQueries({ queryKey: keys.whatsAppLink }),
+  })
+}
+
+export function useRevokeWhatsAppLink() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: api.revokeWhatsAppLink,
+    onSuccess: () => client.invalidateQueries({ queryKey: keys.whatsAppLink }),
+  })
 }
