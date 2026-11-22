@@ -193,7 +193,7 @@ O papel `whatsapp_agent` não dá acesso ao domínio por si só. A conta de serv
 
 ## Pacotes de aulas e pagamentos
 
-O estúdio cadastra pacotes; o aluno cria um pedido e recebe o `payment_id` que leva ao processador de pagamentos ([payments-events-go](https://github.com/JohnnyMatteus/payments-events-go)). O consumidor (`php artisan billing:consume-payments`, perfil `payments` do compose, `PAYMENTS_AMQP_URL`) lê `ledger.entry_recorded` e marca o pedido como pago quando valor e moeda conferem, uma vez só por evento ([ADR 0008](docs/adr/0008-pacotes-de-aulas-e-eventos-de-pagamento.md)). **Não foi exercitado contra o processador nem contra um RabbitMQ real** (testes com dublê). Créditos para reservar ainda não existem: dependem de decisões do autor.
+O estúdio cadastra pacotes; o aluno cria um pedido e recebe o `payment_id` que leva ao processador de pagamentos ([payments-events-go](https://github.com/JohnnyMatteus/payments-events-go)). O consumidor (`php artisan billing:consume-payments`, perfil `payments` do compose, `PAYMENTS_AMQP_URL`) lê `ledger.entry_recorded` e marca o pedido como pago quando valor e moeda conferem, uma vez só por evento ([ADR 0008](docs/adr/0008-pacotes-de-aulas-e-eventos-de-pagamento.md)). Falha do banco não manda nada para a DLQ (o consumidor espera com backoff); o que cai nela volta com `php artisan billing:requeue-dead-letters`. **Não foi exercitado contra o processador nem contra um RabbitMQ real** (testes com dublê). Créditos para reservar ainda não existem: dependem de decisões do autor.
 
 ## Observabilidade: spans
 

@@ -15,6 +15,8 @@ use App\Modules\Tenancy\Models\Tenant;
 use App\Modules\Tenancy\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
+use PDOException;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\Support\InMemoryPaymentEventConsumer;
 use Tests\TestCase;
@@ -179,6 +181,28 @@ final class PaymentEventsTest extends TestCase
         $this->assertSame(2, $this->broker->outcomes['dead_lettered']);
         $this->assertSame(0, PaymentEvent::withoutTenancy()->count());
         $this->assertSame(OrderStatus::Pending, $this->reload($this->order)->status);
+    }
+
+    #[Test]
+    public function a_database_outage_over_many_attempts_dead_letters_nothing_and_the_order_is_paid_when_it_returns(): void
+    {
+        $failures = 7; // acima do x-delivery-limit (5): se a falha virasse devolução ao broker, iria para a DLQ
+        DB::beforeExecuting(function () use (&$failures): void {
+            if ($failures > 0) {
+                $failures--;
+
+                throw new PDOException('SQLSTATE[HY000] [2002] Connection refused');
+            }
+        });
+
+        $this->deliver();
+
+        $this->assertSame(0, $failures);
+        $this->assertSame(0, $this->broker->outcomes['dead_lettered']);
+        $this->assertSame(1, $this->broker->outcomes['acked']);
+        $this->assertCount(7, $this->broker->backoffs);
+        $this->assertSame(OrderStatus::Paid, $this->reload($this->order)->status);
+        $this->assertSame(1, PaymentEvent::withoutTenancy()->count());
     }
 
     #[Test]

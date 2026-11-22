@@ -5,10 +5,8 @@ declare(strict_types=1);
 namespace App\Modules\Billing\Payments;
 
 use App\Modules\Billing\Domain\Exceptions\InvalidPaymentMessage;
+use Closure;
 use PhpAmqpLib\Channel\AMQPChannel;
-use PhpAmqpLib\Connection\AbstractConnection;
-use PhpAmqpLib\Connection\AMQPSSLConnection;
-use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PhpAmqpLib\Message\AMQPMessage;
 use PhpAmqpLib\Wire\AMQPTable;
 use Psr\Log\LoggerInterface;
@@ -17,9 +15,14 @@ use Throwable;
 /**
  * Consome `ledger.entry_recorded` do processador de pagamentos (RabbitMQ).
  *
- * Fila quorum com `x-delivery-limit` e DLQ própria; ack manual depois do handler. Mensagem fora do
- * contrato vai direto para a DLQ (nack sem requeue); falha transitória é devolvida e o próprio
- * broker a descarta para a DLQ depois do limite de entregas.
+ * Fila quorum com DLQ própria e ack manual depois do handler.
+ *
+ * - Mensagem fora do contrato: DLQ direto (nack sem requeue).
+ * - Falha de infraestrutura (banco fora, conexão perdida, deadlock): a mensagem fica sem ack e o consumidor
+ *   espera com backoff exponencial (até 30 s) e tenta de novo, sem limite. Nada é devolvido ao broker, então
+ *   uma queda do banco não gasta `x-delivery-limit` nem esvazia a fila para a DLQ.
+ * - Outra falha: poucas tentativas com backoff e depois DLQ (defeito determinístico não pode travar a fila).
+ * O que cai na DLQ volta com `billing:requeue-dead-letters`.
  */
 final class AmqpPaymentEventConsumer implements PaymentEventConsumer
 {
@@ -27,20 +30,34 @@ final class AmqpPaymentEventConsumer implements PaymentEventConsumer
 
     public const string DEAD_LETTERED = 'dead_lettered';
 
-    public const string REQUEUED = 'requeued';
+    public const int MAX_UNEXPECTED_ATTEMPTS = 3;
+
+    private const int MAX_BACKOFF_SECONDS = 30;
+
+    private readonly Closure $sleep;
 
     /**
      * @param  array{amqp_url: string, exchange: string, binding_key: string, queue: string, delivery_limit: int, prefetch: int}  $config
+     * @param  (callable(int): void)|null  $sleep  espera em segundos; os testes injetam um registrador
      */
-    public function __construct(private readonly array $config, private readonly LoggerInterface $logger) {}
+    public function __construct(
+        private readonly array $config,
+        private readonly LoggerInterface $logger,
+        private readonly FailureClassifier $classifier = new FailureClassifier,
+        ?callable $sleep = null,
+    ) {
+        $this->sleep = $sleep !== null ? Closure::fromCallable($sleep) : static function (int $seconds): void {
+            sleep($seconds);
+        };
+    }
 
     public function run(callable $handler): void
     {
-        $connection = $this->connect();
+        $connection = AmqpConnector::open($this->config['amqp_url']);
         $channel = $connection->channel();
 
         try {
-            $this->declareTopology($channel);
+            self::declareTopology($channel, $this->config);
             $channel->basic_qos(0, $this->config['prefetch'], false);
             $channel->basic_consume(
                 $this->config['queue'],
@@ -66,61 +83,66 @@ final class AmqpPaymentEventConsumer implements PaymentEventConsumer
      */
     public function process(AMQPMessage $message, callable $handler): string
     {
-        try {
-            $handler($message->getBody());
-        } catch (InvalidPaymentMessage $e) {
-            $this->logger->warning('payment_message_dead_lettered', ['reason' => $e->getMessage()]);
-            $message->nack(false);
+        for ($attempt = 1; ; $attempt++) {
+            try {
+                $handler($message->getBody());
+            } catch (InvalidPaymentMessage $e) {
+                $this->logger->warning('payment_message_dead_lettered', ['reason' => $e->getMessage()]);
+                $message->nack(false);
 
-            return self::DEAD_LETTERED;
-        } catch (Throwable $e) {
-            $this->logger->error('payment_message_failed', ['exception' => $e::class]);
-            $message->nack(true);
+                return self::DEAD_LETTERED;
+            } catch (Throwable $e) {
+                $infrastructure = $this->classifier->isInfrastructure($e);
+                if (! $infrastructure && $attempt >= self::MAX_UNEXPECTED_ATTEMPTS) {
+                    $this->logger->error('payment_message_dead_lettered', ['reason' => 'falha repetida', 'exception' => $e::class, 'attempts' => $attempt]);
+                    $message->nack(false);
 
-            return self::REQUEUED;
+                    return self::DEAD_LETTERED;
+                }
+
+                $delay = min(self::MAX_BACKOFF_SECONDS, 2 ** ($attempt - 1));
+                $this->logger->warning('payment_message_retry', [
+                    'attempt' => $attempt, 'retry_in_seconds' => $delay, 'infrastructure' => $infrastructure, 'exception' => $e::class,
+                ]);
+                ($this->sleep)($delay);
+
+                continue;
+            }
+
+            $message->ack();
+
+            return self::ACKED;
         }
-
-        $message->ack();
-
-        return self::ACKED;
     }
 
-    private function declareTopology(AMQPChannel $channel): void
+    /**
+     * @param  array{amqp_url: string, exchange: string, binding_key: string, queue: string, delivery_limit: int, prefetch: int}  $config
+     */
+    public static function declareTopology(AMQPChannel $channel, array $config): void
     {
-        $queue = $this->config['queue'];
+        $queue = $config['queue'];
         $dlx = $queue.'.dlx';
-        $dlq = $queue.'.dlq';
+        $dlq = self::deadLetterQueue($config);
 
-        // Passiva demais não serve: o produtor pode ainda não ter subido, então declara igual a ele.
-        $channel->exchange_declare($this->config['exchange'], 'topic', false, true, false);
+        // Declara igual ao produtor: ele pode ainda não ter subido.
+        $channel->exchange_declare($config['exchange'], 'topic', false, true, false);
         $channel->exchange_declare($dlx, 'direct', false, true, false);
         $channel->queue_declare($dlq, false, true, false, false, false, new AMQPTable(['x-queue-type' => 'quorum']));
         $channel->queue_bind($dlq, $dlx, $dlq);
         $channel->queue_declare($queue, false, true, false, false, false, new AMQPTable([
             'x-queue-type' => 'quorum',
-            'x-delivery-limit' => $this->config['delivery_limit'],
+            'x-delivery-limit' => $config['delivery_limit'],
             'x-dead-letter-exchange' => $dlx,
             'x-dead-letter-routing-key' => $dlq,
         ]));
-        $channel->queue_bind($queue, $this->config['exchange'], $this->config['binding_key']);
+        $channel->queue_bind($queue, $config['exchange'], $config['binding_key']);
     }
 
-    private function connect(): AbstractConnection
+    /**
+     * @param  array{queue: string}  $config
+     */
+    public static function deadLetterQueue(array $config): string
     {
-        $url = parse_url($this->config['amqp_url']);
-        if ($url === false || ! isset($url['host'])) {
-            throw new \InvalidArgumentException('PAYMENTS_AMQP_URL inválida.');
-        }
-
-        $host = $url['host'];
-        $user = isset($url['user']) ? urldecode($url['user']) : 'guest';
-        $pass = isset($url['pass']) ? urldecode($url['pass']) : 'guest';
-        $vhost = isset($url['path']) && $url['path'] !== '/' ? urldecode(ltrim($url['path'], '/')) : '/';
-
-        if (($url['scheme'] ?? 'amqp') === 'amqps') {
-            return new AMQPSSLConnection($host, $url['port'] ?? 5671, $user, $pass, $vhost, ['verify_peer' => true, 'verify_peer_name' => true]);
-        }
-
-        return new AMQPStreamConnection($host, $url['port'] ?? 5672, $user, $pass, $vhost);
+        return $config['queue'].'.dlq';
     }
 }

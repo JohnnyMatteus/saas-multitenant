@@ -55,7 +55,30 @@ final class PaymentNotificationTest extends TestCase
         yield 'valor decimal' => [self::body(['amount_cents' => 10.5])];
         yield 'valor em texto' => [self::body(['amount_cents' => '15000'])];
         yield 'moeda minúscula' => [self::body(['currency' => 'brl'])];
-        yield 'data inválida' => [self::body(['occurred_at' => 'ontem'])];
+        yield 'data em texto livre' => [self::body(['occurred_at' => 'ontem'])];
+        yield 'data relativa' => [self::body(['occurred_at' => 'tomorrow'])];
+        yield 'data relativa agora' => [self::body(['occurred_at' => 'now'])];
+        yield 'data vazia' => [self::body(['occurred_at' => ''])];
+        yield 'data ausente' => [(string) json_encode(array_diff_key(json_decode(self::body(), true), ['occurred_at' => 1]))];
+        yield 'data nula' => [self::body(['occurred_at' => null])];
+        yield 'data numérica' => [self::body(['occurred_at' => 1790000000])];
+        yield 'data como lista' => [self::body(['occurred_at' => ['2026-11-20T12:00:00Z']])];
+        yield 'só a data' => [self::body(['occurred_at' => '2026-11-20'])];
+        yield 'sem fuso' => [self::body(['occurred_at' => '2026-11-20T12:00:00'])];
+        yield 'separador com espaço' => [self::body(['occurred_at' => '2026-11-20 12:00:00Z'])];
+        yield 'dia que não existe' => [self::body(['occurred_at' => '2026-02-30T12:00:00Z'])];
+        yield 'hora 25' => [self::body(['occurred_at' => '2026-11-20T25:00:00Z'])];
+    }
+
+    #[Test]
+    public function the_instant_accepts_fraction_and_offsets_and_is_stored_in_utc(): void
+    {
+        $nano = PaymentNotification::fromJson(self::body(['occurred_at' => '2026-11-20T12:00:00.123456789Z']));
+        $offset = PaymentNotification::fromJson(self::body(['occurred_at' => '2026-11-20T09:00:00-03:00']));
+
+        $this->assertSame('2026-11-20 12:00:00.123456', $nano->occurredAt->format('Y-m-d H:i:s.u'));
+        $this->assertSame('2026-11-20 12:00:00', $offset->occurredAt->format('Y-m-d H:i:s'));
+        $this->assertSame('UTC', $offset->occurredAt->getTimezone()->getName());
     }
 
     #[Test]

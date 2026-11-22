@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Billing;
 
 use App\Modules\Billing\Console\ConsumePaymentEvents;
+use App\Modules\Billing\Console\RequeueDeadLetters;
 use App\Modules\Billing\Payments\AmqpPaymentEventConsumer;
 use App\Modules\Billing\Payments\PaymentEventConsumer;
 use App\Modules\Identity\Models\Role;
@@ -36,6 +37,6 @@ final class BillingServiceProvider extends ServiceProvider
         Gate::define('manage-lesson-packages', fn (User $user): bool => $user->hasRole(Role::StudioAdmin));
         Gate::define('purchase-lesson-packages', fn (User $user): bool => $user->hasRole(Role::Student));
 
-        $this->commands([ConsumePaymentEvents::class]);
+        $this->commands([ConsumePaymentEvents::class, RequeueDeadLetters::class]);
     }
 }

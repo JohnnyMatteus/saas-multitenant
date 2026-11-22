@@ -20,7 +20,14 @@ final class InMemoryPaymentEventConsumer implements PaymentEventConsumer
     private array $pending = [];
 
     /** @var array<string, int> */
-    public array $outcomes = ['acked' => 0, 'dead_lettered' => 0, 'requeued' => 0];
+    public array $outcomes = ['acked' => 0, 'dead_lettered' => 0];
+
+    /**
+     * Esperas de backoff pedidas pelo consumidor (não dorme de verdade).
+     *
+     * @var list<int>
+     */
+    public array $backoffs = [];
 
     public function publish(string $body): void
     {
@@ -32,6 +39,9 @@ final class InMemoryPaymentEventConsumer implements PaymentEventConsumer
         $real = new AmqpPaymentEventConsumer(
             ['amqp_url' => 'amqp://dublê', 'exchange' => 'x', 'binding_key' => 'x', 'queue' => 'x', 'delivery_limit' => 1, 'prefetch' => 1],
             new NullLogger,
+            sleep: function (int $seconds): void {
+                $this->backoffs[] = $seconds;
+            },
         );
 
         foreach (array_splice($this->pending, 0) as $tag => $body) {

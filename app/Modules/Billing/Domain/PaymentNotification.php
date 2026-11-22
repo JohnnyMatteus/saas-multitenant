@@ -6,7 +6,7 @@ namespace App\Modules\Billing\Domain;
 
 use App\Modules\Billing\Domain\Exceptions\InvalidPaymentMessage;
 use Carbon\CarbonImmutable;
-use Throwable;
+use DateTimeImmutable;
 
 /**
  * Evento `ledger.entry_recorded` v1 do processador de pagamentos, validado.
@@ -62,12 +62,34 @@ final readonly class PaymentNotification
             throw InvalidPaymentMessage::because('currency inválida');
         }
 
-        try {
-            $occurredAt = CarbonImmutable::parse((string) ($data['occurred_at'] ?? ''))->utc();
-        } catch (Throwable) {
+        $occurredAt = self::rfc3339($data['occurred_at'] ?? null);
+
+        return new self($data['event_id'], $data['transaction_id'], $data['payment_id'], $direction, $amount, $currency, $occurredAt);
+    }
+
+    /**
+     * RFC 3339 estrito (`2026-11-20T12:00:00Z`, com fração e deslocamento opcionais). Nada de
+     * `parse()`: ele aceita vazio, "now" e "tomorrow" e inventaria o instante do pagamento.
+     *
+     * @throws InvalidPaymentMessage
+     */
+    private static function rfc3339(mixed $value): CarbonImmutable
+    {
+        if (! is_string($value) || preg_match('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,9})?(Z|[+-]\d{2}:\d{2})$/', $value) !== 1) {
             throw InvalidPaymentMessage::because('occurred_at inválido');
         }
 
-        return new self($data['event_id'], $data['transaction_id'], $data['payment_id'], $direction, $amount, $currency, $occurredAt);
+        // O processador escreve até nanossegundos (Go); o PHP lê até microssegundos.
+        $normalized = (string) preg_replace('/(\.\d{6})\d+/', '$1', $value);
+        $format = str_contains($normalized, '.') ? 'Y-m-d\TH:i:s.up' : 'Y-m-d\TH:i:sp';
+        $parsed = DateTimeImmutable::createFromFormat($format, $normalized);
+        $errors = DateTimeImmutable::getLastErrors();
+
+        // Avisos pegam datas que "estouram" em silêncio (30 de fevereiro vira março).
+        if ($parsed === false || ($errors !== false && ($errors['warning_count'] > 0 || $errors['error_count'] > 0))) {
+            throw InvalidPaymentMessage::because('occurred_at inválido');
+        }
+
+        return CarbonImmutable::instance($parsed)->utc();
     }
 }
